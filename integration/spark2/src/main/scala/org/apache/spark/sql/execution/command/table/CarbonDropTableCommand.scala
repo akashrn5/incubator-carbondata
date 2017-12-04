@@ -29,6 +29,7 @@ import org.apache.carbondata.core.cache.dictionary.ManageDictionaryAndBTree
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.locks.{CarbonLockUtil, ICarbonLock, LockUsage}
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable
+import org.apache.carbondata.core.statusmanager.SegmentStatusManager
 import org.apache.carbondata.core.util.CarbonUtil
 import org.apache.carbondata.events._
 import org.apache.carbondata.spark.util.CommonUtil
@@ -72,7 +73,7 @@ case class CarbonDropTableCommand(
           ifExistsSet,
           sparkSession)
       OperationListenerBus.getInstance.fireEvent(dropTablePreEvent, operationContext)
-      if (!CommonUtil.checkLoadInProgressForTable(carbonTable)) {
+      if (SegmentStatusManager.checkIfAnyLoadInProgressForTable(carbonTable)) {
         throw new AnalysisException(s"Cannot drop table, load or insert overwrite is " +
           s"in progress for the table $tableName")
       }

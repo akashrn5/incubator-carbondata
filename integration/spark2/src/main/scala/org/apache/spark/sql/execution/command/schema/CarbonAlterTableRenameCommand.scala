@@ -30,6 +30,7 @@ import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.locks.{ICarbonLock, LockUsage}
 import org.apache.carbondata.core.metadata.CarbonTableIdentifier
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable
+import org.apache.carbondata.core.statusmanager.SegmentStatusManager
 import org.apache.carbondata.core.util.CarbonUtil
 import org.apache.carbondata.core.util.path.CarbonStorePath
 import org.apache.carbondata.events.{AlterTableRenamePostEvent, AlterTableRenamePreEvent, OperationContext, OperationListenerBus}
@@ -85,7 +86,7 @@ private[sql] case class CarbonAlterTableRenameCommand(
       carbonTable = metastore.lookupRelation(Some(oldDatabaseName), oldTableName)(sparkSession)
         .asInstanceOf[CarbonRelation].carbonTable
       // if any load is in progress for table, do not allow rename table
-      if (!CommonUtil.checkLoadInProgressForTable(carbonTable)) {
+      if (SegmentStatusManager.checkIfAnyLoadInProgressForTable(carbonTable)) {
         throw new AnalysisException(s"alter rename failed, load, insert or insert " +
           s"overwrite is in progress for the table $oldTableName")
       }
