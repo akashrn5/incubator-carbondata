@@ -178,6 +178,7 @@ object DataLoadProcessorStepOnSpark {
     var tableName: String = null
     var rowConverter: RowConverterImpl = null
     var dataWriter: DataWriterProcessorStepImpl = null
+    var dataHandler: CarbonFactHandler = null
     try {
       model = modelBroadcast.value.getCopyWithTaskNo(index.toString)
       val storeLocation = Array(getTempStoreLocation(index))
@@ -195,7 +196,6 @@ object DataLoadProcessorStepOnSpark {
       dataWriter = new DataWriterProcessorStepImpl(conf)
 
       val dataHandlerModel = dataWriter.getDataHandlerModel(0)
-      var dataHandler: CarbonFactHandler = null
       var rowsNotExist = true
       while (rows.hasNext) {
         if (rowsNotExist) {
@@ -227,6 +227,7 @@ object DataLoadProcessorStepOnSpark {
       // close the dataWriter once the write in done success or fail. if not closed then thread to
       // to prints the rows processed in each step for every 10 seconds will never exit.
       if(null != dataWriter) {
+        dataWriter.processingComplete(dataHandler)
         dataWriter.close()
       }
       // clean up the folders and files created locally for data load operation

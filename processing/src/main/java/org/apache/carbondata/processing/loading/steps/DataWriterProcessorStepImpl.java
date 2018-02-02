@@ -47,6 +47,8 @@ public class DataWriterProcessorStepImpl extends AbstractDataLoadProcessorStep {
 
   private long readCounter;
 
+  private CarbonFactHandler dataHandler;
+
   public DataWriterProcessorStepImpl(CarbonDataLoadConfiguration configuration,
       AbstractDataLoadProcessorStep child) {
     super(configuration, child);
@@ -97,7 +99,6 @@ public class DataWriterProcessorStepImpl extends AbstractDataLoadProcessorStep {
 
         CarbonFactDataHandlerModel model = CarbonFactDataHandlerModel
             .createCarbonFactDataHandlerModel(configuration, storeLocation, i, 0);
-        CarbonFactHandler dataHandler = null;
         boolean rowsNotExist = true;
         while (iterator.hasNext()) {
           if (rowsNotExist) {
@@ -144,16 +145,9 @@ public class DataWriterProcessorStepImpl extends AbstractDataLoadProcessorStep {
         "Finished Carbon DataWriterProcessorStepImpl: Read: " + readCounter + ": Write: "
             + rowCounter.get();
     LOGGER.info(logMessage);
-    CarbonTimeStatisticsFactory.getLoadStatisticsInstance().recordTotalRecords(rowCounter.get());
-    processingComplete(dataHandler);
-    CarbonTimeStatisticsFactory.getLoadStatisticsInstance()
-        .recordDictionaryValue2MdkAdd2FileTime(configuration.getPartitionId(),
-            System.currentTimeMillis());
-    CarbonTimeStatisticsFactory.getLoadStatisticsInstance()
-        .recordMdkGenerateTotalTime(configuration.getPartitionId(), System.currentTimeMillis());
   }
 
-  private void processingComplete(CarbonFactHandler dataHandler) throws CarbonDataLoadingException {
+  public void processingComplete(CarbonFactHandler dataHandler) throws CarbonDataLoadingException {
     if (null != dataHandler) {
       try {
         dataHandler.closeHandler();
@@ -165,6 +159,11 @@ public class DataWriterProcessorStepImpl extends AbstractDataLoadProcessorStep {
         throw new CarbonDataLoadingException("There is an unexpected error: " + e.getMessage());
       }
     }
+    CarbonTimeStatisticsFactory.getLoadStatisticsInstance()
+        .recordDictionaryValue2MdkAdd2FileTime(configuration.getPartitionId(),
+            System.currentTimeMillis());
+    CarbonTimeStatisticsFactory.getLoadStatisticsInstance()
+        .recordMdkGenerateTotalTime(configuration.getPartitionId(), System.currentTimeMillis());
   }
 
   private void processBatch(CarbonRowBatch batch, CarbonFactHandler dataHandler)
@@ -193,6 +192,17 @@ public class DataWriterProcessorStepImpl extends AbstractDataLoadProcessorStep {
 
   @Override protected CarbonRow processRow(CarbonRow row) {
     return null;
+  }
+
+  /**
+   * Close all resources. This method is called after execute() is finished
+   * It will be called in both success and failure cases
+   */
+  public void close() {
+    if (!closed) {
+      super.close();
+      processingComplete(dataHandler);
+    }
   }
 
 }

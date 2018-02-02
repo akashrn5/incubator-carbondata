@@ -285,9 +285,6 @@ public class CarbonFactDataHandlerColumnar implements CarbonFactHandler {
       blockletProcessingCount.incrementAndGet();
       processedDataCount += entryCount;
       LOGGER.info("Total Number Of records added to store: " + processedDataCount);
-      closeWriterExecutionService(producerExecutorService);
-      processWriteTaskSubmitList(producerExecutorServiceTaskList);
-      processingComplete = true;
     } catch (InterruptedException e) {
       LOGGER.error(e, e.getMessage());
       throw new CarbonDataWriterException(e.getMessage(), e);
@@ -341,6 +338,9 @@ public class CarbonFactDataHandlerColumnar implements CarbonFactHandler {
    */
   public void closeHandler() throws CarbonDataWriterException {
     if (null != this.dataWriter) {
+      closeWriterExecutionService(producerExecutorService);
+      processWriteTaskSubmitList(producerExecutorServiceTaskList);
+      processingComplete = true;
       // wait until all blocklets have been finished writing
       while (blockletProcessingCount.get() > 0) {
         try {
