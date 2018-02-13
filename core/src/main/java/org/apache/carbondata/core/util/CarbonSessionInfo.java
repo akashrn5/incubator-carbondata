@@ -31,6 +31,7 @@ public class CarbonSessionInfo implements Serializable, Cloneable {
   // contains carbon session param details
   private SessionParams sessionParams;
   private SessionParams threadParams;
+  private SessionParams extraParams;
 
   public SessionParams getSessionParams() {
     return sessionParams;
@@ -48,9 +49,18 @@ public class CarbonSessionInfo implements Serializable, Cloneable {
     this.threadParams = threadParams;
   }
 
+  public SessionParams getExtraParams() {
+    return extraParams;
+  }
+
+  public void setExtraParams(SessionParams extraParams) {
+    this.extraParams = extraParams;
+  }
+
   public CarbonSessionInfo() {
     this.sessionParams = new SessionParams();
     this.threadParams = new SessionParams();
+    this.extraParams = new SessionParams();
   }
 
   public CarbonSessionInfo clone() throws CloneNotSupportedException {
@@ -69,6 +79,9 @@ public class CarbonSessionInfo implements Serializable, Cloneable {
       } catch (InvalidConfigurationException ex) {
         ex.printStackTrace();
       }
+    }
+    for (Map.Entry<String, Object> entry : extraParams.getExtraInfo().entrySet()) {
+      newObj.getExtraParams().setExtraInfo(entry.getKey(), entry.getValue());
     }
     return newObj;
   }

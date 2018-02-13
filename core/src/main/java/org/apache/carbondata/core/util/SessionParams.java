@@ -51,20 +51,31 @@ public class SessionParams implements Serializable {
   private static final LogService LOGGER =
       LogServiceFactory.getLogService(CacheProvider.class.getName());
 
+  private static final long serialVersionUID = 1013775251669694093L;
+
   private Map<String, String> sProps;
   private Map<String, String> addedProps;
-  private Map<String, Object> extraInfo;
+  private transient Map<String, Object> extraInfo;
+
   public SessionParams() {
     sProps = new HashMap<>();
     addedProps = new HashMap<>();
-    extraInfo = new HashMap<>();
+    initExtraInfo();
+  }
+
+  private void initExtraInfo() {
+    if (null == extraInfo) {
+      extraInfo = new HashMap<>();
+    }
   }
 
   public void setExtraInfo(String key, Object value) {
+    initExtraInfo();
     this.extraInfo.put(key, value);
   }
 
   public Object getExtraInfo(String key) {
+    initExtraInfo();
     return this.extraInfo.get(key);
   }
 
@@ -127,6 +138,11 @@ public class SessionParams implements Serializable {
 
   public Map<String, String> getAddedProps() {
     return addedProps;
+  }
+
+  public Map<String, Object> getExtraInfo() {
+    initExtraInfo();
+    return extraInfo;
   }
 
   /**
@@ -214,6 +230,7 @@ public class SessionParams implements Serializable {
   }
 
   public void removeExtraInfo(String key) {
+    initExtraInfo();
     extraInfo.remove(key);
   }
   /**
