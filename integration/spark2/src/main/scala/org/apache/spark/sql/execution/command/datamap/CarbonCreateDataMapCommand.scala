@@ -26,6 +26,7 @@ import org.apache.carbondata.common.exceptions.sql.{MalformedCarbonCommandExcept
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.datamap.{DataMapProvider, DataMapStoreManager}
 import org.apache.carbondata.core.datamap.status.DataMapStatusManager
+import org.apache.carbondata.core.metadata.encoder.Encoding
 import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider
 import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, DataMapSchema}
 import org.apache.carbondata.datamap.DataMapManager
@@ -72,6 +73,20 @@ case class CarbonCreateDataMapCommand(
     if (dataMapSchema.getProviderName.equalsIgnoreCase(DataMapClassProvider.LUCENEFG.toString) ||
         dataMapSchema.getProviderName.equalsIgnoreCase(DataMapClassProvider.LUCENECG.toString)) {
       val datamaps = DataMapStoreManager.getInstance().getAllDataMap(mainTable).asScala
+      // do not allow dictionary column to present in text_column property as during lucene index
+      // writing we cannot get the exact value of string from the mdkey
+      dmProperties.values.head.split(",").foreach(col => {
+      val carbonColumn = mainTable.getColumnByName(mainTable.getTableName, col.trim)
+      carbonColumn.getEncoder.asScala.foreach(encoder =>
+      if (encoder.equals(Encoding.DICTIONARY)) {
+        throw new MalformedCarbonCommandException(s"create ${
+          dataMapSchema
+            .getProviderName
+        } is failed, dictionary column $col cannot be given in text_columns")
+      })
+      })
+      // do not allow creating lucene datamap on the column on which already a lucene datamap
+      // is being created
       if (datamaps.nonEmpty) {
         datamaps.foreach(datamap => {
           val dmColumns = datamap.getDataMapSchema.getProperties.get("text_columns")
