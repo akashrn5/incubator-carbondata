@@ -28,6 +28,7 @@ import org.apache.spark.sql.execution.command.{Checker, DataCommand}
 import org.apache.spark.sql.types.StringType
 
 import org.apache.carbondata.core.datamap.DataMapStoreManager
+import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider
 import org.apache.carbondata.core.metadata.schema.table.DataMapSchema
 
 /**
@@ -40,7 +41,8 @@ case class CarbonDataMapShowCommand(tableIdentifier: Option[TableIdentifier])
   override def output: Seq[Attribute] = {
     Seq(AttributeReference("DataMapName", StringType, nullable = false)(),
       AttributeReference("ClassName", StringType, nullable = false)(),
-      AttributeReference("Associated Table", StringType, nullable = false)())
+      AttributeReference("Associated Table", StringType, nullable = false)(),
+      AttributeReference("DMProperties", StringType, nullable = false)())
   }
 
   override def processData(sparkSession: SparkSession): Seq[Row] = {
@@ -65,10 +67,16 @@ case class CarbonDataMapShowCommand(tableIdentifier: Option[TableIdentifier])
       schemaList.asScala.map { s =>
         var table = "(NA)"
         val relationIdentifier = s.getRelationIdentifier
-        if (relationIdentifier != null) {
+        var dmProperties = "(NA)"
+        val isFGorCGdm =
+          s.getProviderName.equalsIgnoreCase(DataMapClassProvider.LUCENEFG.toString) ||
+          s.getProviderName.equalsIgnoreCase(DataMapClassProvider.LUCENECG.toString)
+        if (relationIdentifier != null && !isFGorCGdm) {
           table = relationIdentifier.getDatabaseName + "." + relationIdentifier.getTableName
         }
-        Row(s.getDataMapName, s.getProviderName, table)
+        dmProperties = s.getProperties.keySet().toString.concat("=>")
+          .concat(s.getProperties.values().toString)
+        Row(s.getDataMapName, s.getProviderName, table, dmProperties)
       }
     } else {
       Seq.empty

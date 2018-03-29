@@ -52,7 +52,8 @@ public class DiskBasedDMSchemaStorageProvider implements DataMapSchemaStoragePro
     DataOutputStream dataOutputStream = null;
     Gson gsonObjectToWrite = new Gson();
     String schemaPath =
-        storePath + CarbonCommonConstants.FILE_SEPARATOR + dataMapSchema.getDataMapName()
+        storePath + CarbonCommonConstants.FILE_SEPARATOR + dataMapSchema.relationIdentifier
+            .getTableName() + CarbonCommonConstants.UNDERSCORE + dataMapSchema.getDataMapName()
             + ".dmschema";
     FileFactory.FileType fileType = FileFactory.getFileType(schemaPath);
     if (FileFactory.isFileExist(schemaPath, fileType)) {
