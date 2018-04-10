@@ -386,7 +386,8 @@ class CGDataMapTestCase extends QueryTest with BeforeAndAfterAll {
 
     sql(s"create datamap test_cg_datamap on table datamap_store_test using '${classOf[CGDataMapFactory].getName}' as select  id, name from datamap_store_test")
 
-    val loc = CarbonProperties.getInstance().getSystemFolderLocation + "/test_cg_datamap.dmschema"
+    val loc = CarbonProperties.getInstance().getSystemFolderLocation +
+              "/datamap_store_test_test_cg_datamap.dmschema"
 
     assert(FileFactory.isFileExist(loc))
   }
@@ -402,7 +403,8 @@ class CGDataMapTestCase extends QueryTest with BeforeAndAfterAll {
 
     sql(s"create datamap test_cg_datamap1 on table datamap_store_test1 using '${classOf[CGDataMapFactory].getName}' as select  id, name from datamap_store_test")
 
-    val loc = CarbonProperties.getInstance().getSystemFolderLocation + "/test_cg_datamap1.dmschema"
+    val loc = CarbonProperties.getInstance().getSystemFolderLocation +
+              "/datamap_store_test1_test_cg_datamap1.dmschema"
 
     assert(FileFactory.isFileExist(loc))
 
@@ -422,7 +424,8 @@ class CGDataMapTestCase extends QueryTest with BeforeAndAfterAll {
 
     sql(s"create datamap test_cg_datamap2 on table datamap_store_test2 using '${classOf[CGDataMapFactory].getName}' as select  id, name from datamap_store_test")
 
-    val loc = CarbonProperties.getInstance().getSystemFolderLocation + "/test_cg_datamap2.dmschema"
+    val loc = CarbonProperties.getInstance().getSystemFolderLocation +
+              "/datamap_store_test2_test_cg_datamap2.dmschema"
 
     assert(FileFactory.isFileExist(loc))
 
