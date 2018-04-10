@@ -65,7 +65,8 @@ public class IndexDataMapProvider implements DataMapProvider {
 
   @Override
   public void freeMeta(CarbonTable mainTable, DataMapSchema dataMapSchema) throws IOException {
-    storageProvider.dropSchema(dataMapSchema.getDataMapName());
+    storageProvider.dropSchema(dataMapSchema.getDataMapName(),
+        dataMapSchema.getParentTables().get(0).getTableName());
   }
 
   @Override
@@ -111,7 +112,7 @@ public class IndexDataMapProvider implements DataMapProvider {
     DataMapRegistry.registerDataMap(DataMapClassProvider.LUCENEFG.getClassName(),
         DataMapClassProvider.LUCENEFG.getShortName());
     DataMapFactory dataMapFactory;
-    String className = DataMapRegistry.getDataMapClassName(providerName);
+    String className = DataMapRegistry.getDataMapClassName(providerName.toLowerCase());
     if (className != null) {
       try {
         Class<? extends DataMapFactory> datamapClass =

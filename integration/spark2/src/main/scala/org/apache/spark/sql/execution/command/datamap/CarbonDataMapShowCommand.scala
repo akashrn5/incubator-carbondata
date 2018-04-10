@@ -33,6 +33,7 @@ import org.apache.carbondata.core.metadata.schema.table.DataMapSchema
 
 /**
  * Show the datamaps on the table
+ *
  * @param tableIdentifier
  */
 case class CarbonDataMapShowCommand(tableIdentifier: Option[TableIdentifier])
@@ -46,20 +47,22 @@ case class CarbonDataMapShowCommand(tableIdentifier: Option[TableIdentifier])
   }
 
   override def processData(sparkSession: SparkSession): Seq[Row] = {
+    val finalSchemaList: util.List[DataMapSchema] = new util.ArrayList[DataMapSchema]()
     tableIdentifier match {
       case Some(table) =>
         Checker.validateTableExists(table.database, table.table, sparkSession)
         val carbonTable = CarbonEnv.getCarbonTable(table)(sparkSession)
         if (carbonTable.hasDataMapSchema) {
-          val schemaList = carbonTable.getTableInfo.getDataMapSchemaList
-          convertToRow(schemaList)
-        } else {
-          convertToRow(DataMapStoreManager.getInstance().getAllDataMapSchemas(carbonTable))
+          finalSchemaList.addAll(carbonTable.getTableInfo.getDataMapSchemaList)
         }
+        val indexSchemas = DataMapStoreManager.getInstance().getAllDataMapSchemas(carbonTable)
+        if (!indexSchemas.isEmpty) {
+          finalSchemaList.addAll(indexSchemas)
+        }
+        convertToRow(finalSchemaList)
       case _ =>
         convertToRow(DataMapStoreManager.getInstance().getAllDataMapSchemas)
     }
-
   }
 
   private def convertToRow(schemaList: util.List[DataMapSchema]) = {
@@ -74,8 +77,12 @@ case class CarbonDataMapShowCommand(tableIdentifier: Option[TableIdentifier])
         if (relationIdentifier != null && !isFGorCGdm) {
           table = relationIdentifier.getDatabaseName + "." + relationIdentifier.getTableName
         }
-        dmProperties = s.getProperties.keySet().toString.concat("=>")
-          .concat(s.getProperties.values().toString)
+        if (s.getProviderName.equalsIgnoreCase(DataMapClassProvider.PREAGGREGATE.toString)) {
+          dmProperties = "(NA)"
+        } else {
+          dmProperties = s.getProperties.keySet().toString.concat("=>")
+            .concat(s.getProperties.values().toString)
+        }
         Row(s.getDataMapName, s.getProviderName, table, dmProperties)
       }
     } else {

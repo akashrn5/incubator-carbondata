@@ -130,9 +130,9 @@ public class DiskBasedDMSchemaStorageProvider implements DataMapSchemaStoragePro
     return dataMapSchemas;
   }
 
-  @Override public void dropSchema(String dataMapName) throws IOException {
-    String schemaPath =
-        storePath + CarbonCommonConstants.FILE_SEPARATOR + dataMapName + ".dmschema";
+  @Override public void dropSchema(String dataMapName,String tableName) throws IOException {
+    String schemaPath = storePath + CarbonCommonConstants.FILE_SEPARATOR + tableName
+        + CarbonCommonConstants.UNDERSCORE + dataMapName + ".dmschema";
     if (!FileFactory.isFileExist(schemaPath, FileFactory.getFileType(schemaPath))) {
       throw new IOException("DataMap with name " + dataMapName + " does not exists in storage");
     }
