@@ -145,6 +145,7 @@ struct DataChunk3{
     1: required list<DataChunk2> data_chunk_list; // List of data chunk
     2: optional list<i32> page_offset; // Offset of each chunk
     3: optional list<i32> page_length; // Length of each chunk
+    4: optional list<binary> local_dictionary; // to store blocklet local dictionary values
    
  }
 /**

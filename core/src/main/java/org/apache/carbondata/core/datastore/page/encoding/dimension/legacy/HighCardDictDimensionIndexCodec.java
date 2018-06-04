@@ -26,7 +26,9 @@ import org.apache.carbondata.core.datastore.columnar.BlockIndexerStorageForShort
 import org.apache.carbondata.core.datastore.columnar.IndexStorage;
 import org.apache.carbondata.core.datastore.compression.Compressor;
 import org.apache.carbondata.core.datastore.page.ColumnPage;
+import org.apache.carbondata.core.datastore.page.LocalDictColumnPage;
 import org.apache.carbondata.core.datastore.page.encoding.ColumnPageEncoder;
+import org.apache.carbondata.core.localdictionary.PageLevelDictionary;
 import org.apache.carbondata.core.util.ByteUtil;
 import org.apache.carbondata.format.Encoding;
 
@@ -50,10 +52,15 @@ public class HighCardDictDimensionIndexCodec  extends IndexStorageCodec {
       protected void encodeIndexStorage(ColumnPage input) {
         IndexStorage indexStorage;
         byte[][] data = input.getByteArrayPage();
+        boolean isDictionary = false;
+        if(input instanceof LocalDictColumnPage) {
+          LocalDictColumnPage localDictColumnPage = (LocalDictColumnPage)input;
+          isDictionary = localDictColumnPage.isLocalDictGeneratedPage();
+        }
         if (isInvertedIndex) {
-          indexStorage = new BlockIndexerStorageForShort(data, false, true, isSort);
+          indexStorage = new BlockIndexerStorageForShort(data, isDictionary, !isDictionary, isSort);
         } else {
-          indexStorage = new BlockIndexerStorageForNoInvertedIndexForShort(data, true);
+          indexStorage = new BlockIndexerStorageForNoInvertedIndexForShort(data, !isDictionary);
         }
         byte[] flattened = ByteUtil.flatten(indexStorage.getDataPage());
         super.compressedDataPage = compressor.compressByte(flattened);
@@ -71,5 +78,4 @@ public class HighCardDictDimensionIndexCodec  extends IndexStorageCodec {
 
     };
   }
-
 }

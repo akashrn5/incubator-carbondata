@@ -32,6 +32,7 @@ import org.apache.carbondata.core.datastore.compression.CompressorFactory;
 import org.apache.carbondata.core.datastore.page.ColumnPage;
 import org.apache.carbondata.core.datastore.page.ComplexColumnPage;
 import org.apache.carbondata.core.datastore.page.encoding.compress.DirectCompressCodec;
+import org.apache.carbondata.core.localdictionary.PageLevelDictionary;
 import org.apache.carbondata.core.memory.MemoryException;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.CarbonMetadataUtil;
@@ -56,7 +57,7 @@ public abstract class ColumnPageEncoder {
   public EncodedColumnPage encode(ColumnPage inputPage) throws IOException, MemoryException {
     byte[] encodedBytes = encodeData(inputPage);
     DataChunk2 pageMetadata = buildPageMetadata(inputPage, encodedBytes);
-    return new EncodedColumnPage(pageMetadata, encodedBytes, inputPage.getStatistics());
+    return new EncodedColumnPage(pageMetadata, encodedBytes, inputPage);
   }
 
   private DataChunk2 buildPageMetadata(ColumnPage inputPage, byte[] encodedBytes)

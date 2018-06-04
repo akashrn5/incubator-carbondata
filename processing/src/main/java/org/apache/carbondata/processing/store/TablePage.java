@@ -44,6 +44,7 @@ import org.apache.carbondata.core.datastore.page.statistics.PrimitivePageStatsCo
 import org.apache.carbondata.core.datastore.row.CarbonRow;
 import org.apache.carbondata.core.datastore.row.WriteStepRowUtil;
 import org.apache.carbondata.core.keygenerator.KeyGenException;
+import org.apache.carbondata.core.localdictionary.generator.LocalDictionaryGenerator;
 import org.apache.carbondata.core.memory.MemoryException;
 import org.apache.carbondata.core.metadata.datatype.DataType;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
@@ -98,7 +99,15 @@ public class TablePage {
     noDictDimensionPages = new ColumnPage[model.getNoDictionaryCount()];
     for (int i = 0; i < noDictDimensionPages.length; i++) {
       TableSpec.DimensionSpec spec = tableSpec.getDimensionSpec(i + numDictDimension);
-      ColumnPage page = ColumnPage.newPage(spec, DataTypes.STRING, pageSize);
+      LocalDictionaryGenerator localDictionaryGenerator =
+          model.getColumnLocalDictGenMap().get(spec.getFieldName());
+      ColumnPage page;
+      if(null != localDictionaryGenerator) {
+        page = ColumnPage.newLocalDictPage(spec, DataTypes.STRING, pageSize,
+            model.getColumnLocalDictGenMap().get(spec.getFieldName()));
+      } else {
+        page = ColumnPage.newPage(spec, DataTypes.STRING, pageSize);
+      }
       page.setStatsCollector(LVStringStatsCollector.newInstance());
       noDictDimensionPages[i] = page;
     }
@@ -122,6 +131,7 @@ public class TablePage {
           PrimitivePageStatsCollector.newInstance(dataTypes[i]));
       measurePages[i] = page;
     }
+
     boolean hasNoDictionary = noDictDimensionPages.length > 0;
     this.key = new TablePageKey(pageSize, model.getSegmentProperties(), hasNoDictionary);
 

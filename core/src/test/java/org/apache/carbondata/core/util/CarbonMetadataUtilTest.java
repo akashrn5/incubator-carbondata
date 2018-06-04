@@ -187,15 +187,15 @@ public class CarbonMetadataUtilTest {
 
     SegmentProperties segmentProperties = new SegmentProperties(columnSchemaList, cardinality);
 
-    final EncodedColumnPage measure = new EncodedColumnPage(new DataChunk2(), new byte[]{0,1},
-        PrimitivePageStatsCollector.newInstance(
-        org.apache.carbondata.core.metadata.datatype.DataTypes.BYTE));
-    new MockUp<EncodedTablePage>() {
-      @SuppressWarnings("unused") @Mock
-      public EncodedColumnPage getMeasure(int measureIndex) {
-        return measure;
-      }
-    };
+//    final EncodedColumnPage measure = new EncodedColumnPage(new DataChunk2(), new byte[]{0,1},
+//        PrimitivePageStatsCollector.newInstance(
+//        org.apache.carbondata.core.metadata.datatype.DataTypes.BYTE));
+//    new MockUp<EncodedTablePage>() {
+//      @SuppressWarnings("unused") @Mock
+//      public EncodedColumnPage getMeasure(int measureIndex) {
+//        return measure;
+//      }
+//    };
 
     new MockUp<TablePageKey>() {
       @SuppressWarnings("unused") @Mock

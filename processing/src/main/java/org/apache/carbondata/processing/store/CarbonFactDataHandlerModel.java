@@ -27,6 +27,7 @@ import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.datastore.TableSpec;
 import org.apache.carbondata.core.datastore.block.SegmentProperties;
 import org.apache.carbondata.core.keygenerator.KeyGenerator;
+import org.apache.carbondata.core.localdictionary.generator.LocalDictionaryGenerator;
 import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier;
 import org.apache.carbondata.core.metadata.CarbonMetadata;
 import org.apache.carbondata.core.metadata.CarbonTableIdentifier;
@@ -162,6 +163,8 @@ public class CarbonFactDataHandlerModel {
   private DataMapWriterListener dataMapWriterlistener;
 
   private short writingCoresCount;
+
+  private Map<String, LocalDictionaryGenerator> columnLocalDictGenMap;
 
   /**
    * Create the model using @{@link CarbonDataLoadConfiguration}
@@ -621,5 +624,8 @@ public class CarbonFactDataHandlerModel {
     return dataMapWriterlistener;
   }
 
+  public Map<String, LocalDictionaryGenerator> getColumnLocalDictGenMap() {
+    return columnLocalDictGenMap;
+  }
 }
 
