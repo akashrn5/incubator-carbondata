@@ -49,7 +49,6 @@ import org.apache.carbondata.core.util.CarbonProperties;
 import org.apache.carbondata.core.util.CarbonThreadFactory;
 import org.apache.carbondata.core.util.CarbonUtil;
 import org.apache.carbondata.processing.datatypes.GenericDataType;
-import org.apache.carbondata.processing.loading.sort.SortScopeOptions;
 import org.apache.carbondata.processing.store.writer.CarbonFactDataWriter;
 
 /**
@@ -137,36 +136,10 @@ public class CarbonFactDataHandlerColumnar implements CarbonFactHandler {
   }
 
   private void initParameters(CarbonFactDataHandlerModel model) {
-    SortScopeOptions.SortScope sortScope = model.getSortScope();
     this.colGrpModel = model.getSegmentProperties().getColumnGroupModel();
-
-    // in compaction flow the measure with decimal type will come as spark decimal.
-    // need to convert it to byte array.
-    if (model.isCompactionFlow()) {
-      try {
-        numberOfCores = Integer.parseInt(CarbonProperties.getInstance()
-            .getProperty(CarbonCommonConstants.NUM_CORES_COMPACTING,
-                CarbonCommonConstants.NUM_CORES_DEFAULT_VAL));
-      } catch (NumberFormatException exc) {
-        LOGGER.error("Configured value for property " + CarbonCommonConstants.NUM_CORES_COMPACTING
-            + "is wrong.Falling back to the default value "
-            + CarbonCommonConstants.NUM_CORES_DEFAULT_VAL);
-        numberOfCores = Integer.parseInt(CarbonCommonConstants.NUM_CORES_DEFAULT_VAL);
-      }
-    } else {
-      numberOfCores = CarbonProperties.getInstance().getNumberOfCores();
-    }
-
-    if (sortScope != null && sortScope.equals(SortScopeOptions.SortScope.GLOBAL_SORT)) {
-      numberOfCores = 1;
-    }
-    // Overriding it to the task specified cores.
-    if (model.getWritingCoresCount() > 0) {
-      numberOfCores = model.getWritingCoresCount();
-    }
-
+    this.numberOfCores = model.getNumberOfCores();
     blockletProcessingCount = new AtomicInteger(0);
-    producerExecutorService = Executors.newFixedThreadPool(numberOfCores,
+    producerExecutorService = Executors.newFixedThreadPool(model.getNumberOfCores(),
         new CarbonThreadFactory("ProducerPool:" + model.getTableName()
             + ", range: " + model.getBucketId()));
     producerExecutorServiceTaskList =
