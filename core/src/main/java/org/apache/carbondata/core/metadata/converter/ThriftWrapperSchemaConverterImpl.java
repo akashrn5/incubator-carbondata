@@ -37,6 +37,7 @@ import org.apache.carbondata.core.metadata.schema.table.TableInfo;
 import org.apache.carbondata.core.metadata.schema.table.TableSchema;
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
 import org.apache.carbondata.core.metadata.schema.table.column.ParentColumnTableRelation;
+import org.apache.carbondata.core.util.CarbonUtil;
 
 /**
  * Thrift schema to carbon schema converter and vice versa
@@ -594,6 +595,8 @@ public class ThriftWrapperSchemaConverterImpl implements SchemaConverter {
         .getTable_columns()) {
       listOfColumns.add(fromExternalToWrapperColumnSchema(externalColumnSchema));
     }
+    CarbonUtil
+        .setLocalDictColumnsToWrapperSchema(listOfColumns, externalTableSchema.tableProperties);
     wrapperTableSchema.setListOfColumns(listOfColumns);
     wrapperTableSchema.setSchemaEvolution(
         fromExternalToWrapperSchemaEvolution(externalTableSchema.getSchema_evolution()));

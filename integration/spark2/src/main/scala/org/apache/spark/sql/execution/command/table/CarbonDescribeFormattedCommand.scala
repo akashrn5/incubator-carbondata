@@ -111,6 +111,22 @@ private[sql] case class CarbonDescribeFormattedCommand(
       .LOAD_SORT_SCOPE_DEFAULT)))
     val isStreaming = tblProps.asScala.getOrElse("streaming", "false")
     results ++= Seq(("Streaming", isStreaming, ""))
+    val isLocalDictEnabled = tblProps.asScala
+      .getOrElse(CarbonCommonConstants.LOCAL_DICT_ENABLE,
+          CarbonCommonConstants.LOCAL_DICT_ENABLE_DEFAULT)
+    results ++= Seq(("Local Dictionary Support", isLocalDictEnabled, ""))
+    if (isLocalDictEnabled.toBoolean) {
+      val localDictThreshold = tblProps.asScala
+        .getOrElse(CarbonCommonConstants.LOCAL_DICT_THRESHOLD,
+            CarbonCommonConstants.LOCALDICT_THRESHOLD_DEFAULT)
+      results ++= Seq(("Local Dictionary Threshold", localDictThreshold, ""))
+      val localDictColumns = if (tblProps.asScala
+        .get(CarbonCommonConstants.LOCAL_DICT_COLUMNS).isDefined) {
+        val dictColumns = tblProps.asScala(CarbonCommonConstants.LOCAL_DICT_COLUMNS)
+        results ++= Seq(("Local Dictionary Columns", dictColumns, ""))
+      }
+    }
+
 
     // show table level compaction options
     if (tblProps.containsKey(CarbonCommonConstants.TABLE_MAJOR_COMPACTION_SIZE)) {

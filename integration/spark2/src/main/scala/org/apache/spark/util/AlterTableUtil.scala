@@ -378,7 +378,7 @@ object AlterTableUtil {
   }
 
   def validateTableProperties(propKey: String): Boolean = {
-    val supportedOptions = Seq("STREAMING", "COMMENT")
+    val supportedOptions = Seq("STREAMING", "COMMENT", "LOCAL_DICT_THRESHOLD")
    supportedOptions.contains(propKey.toUpperCase)
   }
 }

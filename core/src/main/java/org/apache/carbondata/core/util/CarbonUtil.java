@@ -17,12 +17,31 @@
 
 package org.apache.carbondata.core.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.PrivilegedExceptionAction;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import org.apache.carbondata.common.logging.LogService;
 import org.apache.carbondata.common.logging.LogServiceFactory;
@@ -2999,6 +3018,47 @@ public final class CarbonUtil {
           + CarbonCommonConstants.FILE_SEPARATOR + blockName;
     }
     return blockId;
+  }
+
+  /**
+   * sets the local dictionary columns to wrapper schema, if the table property local_dict_columns
+   * is defined, then those columns will be set as local dictionary columns, if not, all the no
+   * dictionary string datatype columns are set as local dictionary columns.
+   * @param columns
+   * @param tableProperties
+   */
+  public static void setLocalDictColumnsToWrapperSchema(List<ColumnSchema> columns,
+      Map<String, String> tableProperties) {
+    int childColumnCount = 0;
+    String localDictColumns = tableProperties.get(CarbonCommonConstants.LOCAL_DICT_COLUMNS);
+    for (ColumnSchema column : columns) {
+      // for complex type columns, user gives the parent column as local dictionary column and only
+      // the string primitive type child column will be set as local dictionary column in the schema
+      if (childColumnCount > 0) {
+        if (column.getDataType().equals(DataTypes.STRING)) {
+          column.setLocalDictColumn(true);
+          childColumnCount -= 1;
+        } else {
+          childColumnCount -= 1;
+        }
+      }
+      if (column.getNumberOfChild() > 0 && null != localDictColumns && localDictColumns
+          .contains(column.getColumnName())) {
+        childColumnCount = column.getNumberOfChild();
+      }
+      if (null == localDictColumns) {
+        if (column.isDimensionColumn() && column.getDataType().equals(DataTypes.STRING) && !column
+            .hasEncoding(Encoding.DICTIONARY)) {
+          column.setLocalDictColumn(true);
+        }
+      } else {
+        if (column.isDimensionColumn() && column.getDataType().equals(DataTypes.STRING) && !column
+            .hasEncoding(Encoding.DICTIONARY) && localDictColumns
+            .contains(column.getColumnName())) {
+          column.setLocalDictColumn(true);
+        }
+      }
+    }
   }
 }
 
