@@ -104,7 +104,7 @@ public class TablePage {
       ColumnPage page;
       if(null != localDictionaryGenerator) {
         page = ColumnPage.newLocalDictPage(spec, DataTypes.STRING, pageSize,
-            model.getColumnLocalDictGenMap().get(spec.getFieldName()));
+            localDictionaryGenerator);
       } else {
         page = ColumnPage.newPage(spec, DataTypes.STRING, pageSize);
       }
