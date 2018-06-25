@@ -37,12 +37,15 @@ import org.apache.carbondata.core.datastore.block.TableBlockInfo;
 import org.apache.carbondata.core.datastore.chunk.DimensionColumnPage;
 import org.apache.carbondata.core.datastore.chunk.impl.DimensionRawColumnChunk;
 import org.apache.carbondata.core.datastore.chunk.impl.MeasureRawColumnChunk;
+import org.apache.carbondata.core.datastore.chunk.reader.CarbonDataReaderFactory;
+import org.apache.carbondata.core.datastore.chunk.reader.dimension.v3.CompressedDimensionChunkFileBasedReaderV3;
 import org.apache.carbondata.core.datastore.columnar.ColumnGroupModel;
 import org.apache.carbondata.core.datastore.columnar.UnBlockIndexer;
 import org.apache.carbondata.core.datastore.exception.CarbonDataWriterException;
 import org.apache.carbondata.core.datastore.filesystem.CarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.CarbonFileFilter;
 import org.apache.carbondata.core.datastore.impl.FileFactory;
+import org.apache.carbondata.core.datastore.impl.FileReaderImpl;
 import org.apache.carbondata.core.exception.InvalidConfigurationException;
 import org.apache.carbondata.core.indexstore.BlockletDetailInfo;
 import org.apache.carbondata.core.keygenerator.mdkey.NumberCompressor;
@@ -51,6 +54,7 @@ import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier;
 import org.apache.carbondata.core.metadata.ColumnarFormatVersion;
 import org.apache.carbondata.core.metadata.SegmentFileStore;
 import org.apache.carbondata.core.metadata.ValueEncoderMeta;
+import org.apache.carbondata.core.metadata.blocklet.BlockletInfo;
 import org.apache.carbondata.core.metadata.blocklet.DataFileFooter;
 import org.apache.carbondata.core.metadata.blocklet.SegmentInfo;
 import org.apache.carbondata.core.metadata.converter.SchemaConverter;
@@ -3115,5 +3119,29 @@ public final class CarbonUtil {
         }
       }
     }
+  }
+
+  public static List<DimensionRawColumnChunk> read(String filePath) throws IOException {
+    File carbonDataFiles = new File(filePath);
+    List<DimensionRawColumnChunk> dimensionRawColumnChunks = new ArrayList<>();
+    long offset = carbonDataFiles.length();
+    AbstractDataFileFooterConverter converter = new DataFileFooterConverterV3();
+    long actualOffset =
+        new FileReaderImpl().readLong(carbonDataFiles.getAbsolutePath(), offset - 8);
+    TableBlockInfo blockInfo =
+        new TableBlockInfo(carbonDataFiles.getAbsolutePath(), actualOffset, "0", new String[0],
+            carbonDataFiles.length(), ColumnarFormatVersion.V3, null);
+    DataFileFooter dataFileFooter = converter.readDataFileFooter(blockInfo);
+    List<BlockletInfo> blockletList = dataFileFooter.getBlockletList();
+    FileReaderImpl fileReader = new FileReaderImpl();
+    for (BlockletInfo blockletInfo : blockletList) {
+      CompressedDimensionChunkFileBasedReaderV3 dimensionColumnChunkReader =
+          (CompressedDimensionChunkFileBasedReaderV3) CarbonDataReaderFactory.getInstance()
+              .getDimensionColumnChunkReader(ColumnarFormatVersion.V3, blockletInfo,
+                  dataFileFooter.getSegmentInfo().getColumnCardinality(),
+                  carbonDataFiles.getAbsolutePath(), false);
+      dimensionRawColumnChunks.add(dimensionColumnChunkReader.readRawDimensionChunk(fileReader, 0));
+    }
+    return dimensionRawColumnChunks;
   }
 }
