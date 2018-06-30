@@ -59,6 +59,8 @@ public class TableSchemaBuilder {
   private int blockletSize;
 
   private String tableName;
+  private boolean isLocalDictionaryEnabled;
+  private String localDictionaryThreshold;
 
   public TableSchemaBuilder blockSize(int blockSize) {
     if (blockSize <= 0) {
@@ -75,6 +77,18 @@ public class TableSchemaBuilder {
     this.blockletSize = blockletSize;
     return this;
   }
+
+  public TableSchemaBuilder localDictionaryThreshold(int localDictionaryThreshold) {
+    this.localDictionaryThreshold = String.valueOf(localDictionaryThreshold);
+    return this;
+  }
+
+
+  public TableSchemaBuilder enableLocalDictionary(boolean enableLocalDictionary) {
+    this.isLocalDictionaryEnabled = enableLocalDictionary;
+    return this;
+  }
+
 
   public TableSchemaBuilder tableName(String tableName) {
     Objects.requireNonNull(tableName);
@@ -107,7 +121,22 @@ public class TableSchemaBuilder {
     if (property.size() != 0) {
       schema.setTableProperties(property);
     }
-
+    // Adding local dictionary, applicable only for String(dictionary exclude)
+    if (isLocalDictionaryEnabled) {
+      property.put(CarbonCommonConstants.LOCAL_DICTIONARY_ENABLE,
+          String.valueOf(isLocalDictionaryEnabled));
+      String localdictionaryThreshold = localDictionaryThreshold.equalsIgnoreCase("0") ?
+          CarbonCommonConstants.LOCAL_DICTIONARY_THRESHOLD_DEFAULT :
+          localDictionaryThreshold;
+      property.put(CarbonCommonConstants.LOCAL_DICTIONARY_THRESHOLD, localdictionaryThreshold);
+      for (int index = 0; index < allColumns.size(); index++) {
+        ColumnSchema colSchema = allColumns.get(index);
+        if (colSchema.getDataType() == DataTypes.STRING) {
+          colSchema.setLocalDictColumn(true);
+          allColumns.set(index, colSchema);
+        }
+      }
+    }
     return schema;
   }
 
