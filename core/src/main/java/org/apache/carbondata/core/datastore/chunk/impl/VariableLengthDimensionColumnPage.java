@@ -32,14 +32,26 @@ public class VariableLengthDimensionColumnPage extends AbstractDimensionColumnPa
    * Constructor for this class
    */
   public VariableLengthDimensionColumnPage(byte[] dataChunks, int[] invertedIndex,
-      int[] invertedIndexReverse, int numberOfRows, DimensionStoreType dimStoreType) {
+      int[] invertedIndexReverse, int numberOfRows, DimensionStoreType dimStoreType,
+      byte[][] dictionary) {
     boolean isExplicitSorted = isExplicitSorted(invertedIndex);
-    long totalSize = null != invertedIndex ?
-        (dataChunks.length + (2 * numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE) + (
-            numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE)) :
-        (dataChunks.length + (numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE));
+    long totalSize = 0;
+    switch (dimStoreType) {
+      case LOCAL_DICT:
+        totalSize = null != invertedIndex ?
+            (dataChunks.length + (2 * numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE)) :
+            dataChunks.length;
+        break;
+      case VARIABLE_INT_LENGTH:
+      case VARIABLE_SHORT_LENGTH:
+        totalSize = null != invertedIndex ?
+            (dataChunks.length + (2 * numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE) + (
+                numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE)) :
+            (dataChunks.length + (numberOfRows * CarbonCommonConstants.INT_SIZE_IN_BYTE));
+    }
     dataChunkStore = DimensionChunkStoreFactory.INSTANCE
-        .getDimensionChunkStore(0, isExplicitSorted, numberOfRows, totalSize, dimStoreType);
+        .getDimensionChunkStore(0, isExplicitSorted, numberOfRows, totalSize, dimStoreType,
+            dictionary);
     dataChunkStore.putArray(invertedIndex, invertedIndexReverse, dataChunks);
   }
 

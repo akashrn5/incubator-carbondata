@@ -485,7 +485,7 @@ public class CarbonTable implements Serializable {
    * @return
    */
   public boolean isLocalDictionaryEnabled() {
-    return false;
+    return true;
   }
 
   /**

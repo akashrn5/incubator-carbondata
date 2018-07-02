@@ -230,6 +230,7 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
         fields[dim.getOrdinal()] = new StructField(dim.getColumnName(),
             CarbonScalaUtil.convertCarbonToSparkDataType(generator.getReturnType()), true, null);
       } else if (!dim.getDimension().hasEncoding(Encoding.DICTIONARY)) {
+
         fields[dim.getOrdinal()] = new StructField(dim.getColumnName(),
             CarbonScalaUtil.convertCarbonToSparkDataType(dim.getDimension().getDataType()), true,
             null);
@@ -265,6 +266,10 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
     CarbonColumnVector[] vectors = new CarbonColumnVector[fields.length];
     boolean[] filteredRows = new boolean[columnarBatch.capacity()];
     for (int i = 0; i < fields.length; i++) {
+      if (i < queryDimension.size() && CarbonScalaUtil
+          .isStringDataType(columnarBatch.column(i).dataType())) {
+        columnarBatch.column(i).reserveDictionaryIds(columnarBatch.capacity());
+      }
       vectors[i] = new ColumnarVectorWrapper(columnarBatch.column(i), filteredRows);
     }
     carbonColumnarBatch = new CarbonColumnarBatch(vectors, columnarBatch.capacity(), filteredRows);

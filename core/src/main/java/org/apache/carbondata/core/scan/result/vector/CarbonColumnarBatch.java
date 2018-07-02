@@ -17,6 +17,7 @@
 
 package org.apache.carbondata.core.scan.result.vector;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 public class CarbonColumnarBatch {
@@ -84,6 +85,12 @@ public class CarbonColumnarBatch {
       for (int i = 0; i < columnVectors.length; i++) {
         columnVectors[i].setFilteredRowsExist(true);
       }
+    }
+  }
+
+  public void resetDictionary() {
+    for (CarbonColumnVector columnVector : columnVectors) {
+      columnVector.setDictionary(null);
     }
   }
 
