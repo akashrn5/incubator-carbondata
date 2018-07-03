@@ -53,6 +53,8 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
    */
   private boolean isNaturalSorted = false;
 
+  private byte[][] filterValues;
+
   public ExcludeFilterExecuterImpl(DimColumnResolvedFilterInfo dimColEvaluatorInfo,
       MeasureColumnResolvedFilterInfo msrColumnEvaluatorInfo, SegmentProperties segmentProperties,
       boolean isMeasure) {
@@ -94,6 +96,9 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
       }
       DimensionRawColumnChunk dimensionRawColumnChunk =
           rawBlockletColumnChunks.getDimensionRawColumnChunks()[chunkIndex];
+      filterValues = FilterUtil
+          .getEncodedFilterValues(dimensionRawColumnChunk.getLocalDictionary(),
+              dimColumnExecuterInfo.filterKeysForExclude);
       DimensionColumnPage[] dimensionColumnPages =
           dimensionRawColumnChunk.decodeAllColumnPages();
       BitSetGroup bitSetGroup = new BitSetGroup(dimensionRawColumnChunk.getPagesCount());
@@ -289,7 +294,7 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
       int numberOfRows, boolean useBitsetPipeLine, BitSetGroup prvBitSetGroup, int pageNumber) {
     // check whether applying filtered based on previous bitset will be optimal
     if (CarbonUtil.usePreviousFilterBitsetGroup(useBitsetPipeLine, prvBitSetGroup, pageNumber,
-        dimColumnExecuterInfo.getExcludeFilterKeys().length)) {
+        filterValues.length)) {
       return getFilteredIndexesUisngPrvBitset(dimensionColumnPage, prvBitSetGroup, pageNumber);
     } else {
       return getFilteredIndexes(dimensionColumnPage, numberOfRows);
@@ -319,7 +324,6 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
     }
     BitSet bitSet = new BitSet();
     bitSet.or(prvPageBitSet);
-    byte[][] filterKeys = dimColumnExecuterInfo.getExcludeFilterKeys();
     int compareResult = 0;
     // if dimension data was natural sorted then get the index from previous bitset
     // and use the same in next column data, otherwise use the inverted index reverse
@@ -327,7 +331,7 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
       for (int index = prvPageBitSet.nextSetBit(0);
            index >= 0; index = prvPageBitSet.nextSetBit(index + 1)) {
         compareResult = CarbonUtil
-            .isFilterPresent(filterKeys, dimensionColumnPage, 0, filterKeys.length - 1, index);
+            .isFilterPresent(filterValues, dimensionColumnPage, 0, filterValues.length - 1, index);
         if (compareResult != 0) {
           bitSet.set(index);
         } else {
@@ -340,7 +344,7 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
       for (int index = prvPageBitSet.nextSetBit(0);
            index >= 0; index = prvPageBitSet.nextSetBit(index + 1)) {
         compareResult = CarbonUtil
-            .isFilterPresent(filterKeys, dimensionColumnPage, 0, filterKeys.length - 1,
+            .isFilterPresent(filterValues, dimensionColumnPage, 0, filterValues.length - 1,
                 dimensionColumnPage.getInvertedReverseIndex(index));
         if (compareResult != 0) {
           bitSet.set(index);
@@ -359,7 +363,6 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
     BitSet bitSet = new BitSet(numerOfRows);
     bitSet.flip(0, numerOfRows);
     int startIndex = 0;
-    byte[][] filterValues = dimColumnExecuterInfo.getExcludeFilterKeys();
     for (int i = 0; i < filterValues.length; i++) {
       if (startIndex >= numerOfRows) {
         break;
@@ -381,7 +384,6 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
       int numerOfRows) {
     BitSet bitSet = new BitSet(numerOfRows);
     bitSet.flip(0, numerOfRows);
-    byte[][] filterValues = dimColumnExecuterInfo.getExcludeFilterKeys();
     // filterValues can be null when the dictionary chunk and surrogate size both are one
     if (filterValues.length == 0) {
       return bitSet;

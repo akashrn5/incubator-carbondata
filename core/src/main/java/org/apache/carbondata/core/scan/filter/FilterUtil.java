@@ -52,6 +52,7 @@ import org.apache.carbondata.core.datastore.block.SegmentProperties;
 import org.apache.carbondata.core.datastore.chunk.DimensionColumnPage;
 import org.apache.carbondata.core.keygenerator.KeyGenException;
 import org.apache.carbondata.core.keygenerator.KeyGenerator;
+import org.apache.carbondata.core.keygenerator.factory.KeyGeneratorFactory;
 import org.apache.carbondata.core.keygenerator.mdkey.MultiDimKeyVarLengthGenerator;
 import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier;
 import org.apache.carbondata.core.metadata.CarbonMetadata;
@@ -1838,5 +1839,34 @@ public final class FilterUtil {
         }
       }
     }
+  }
+
+  public static byte[][] getEncodedFilterValues(byte[][] dictionaryValues, byte[][] actualFilterValues) {
+    if(null == dictionaryValues){
+      return actualFilterValues;
+    }
+    KeyGenerator keyGenerator = KeyGeneratorFactory.getKeyGenerator(new int[] { 100000 });
+    List<byte[]> encodedFilters= new ArrayList<>();
+    for (byte[] actualFilter:actualFilterValues) {
+      for(int i = 0; i<dictionaryValues.length;i++) {
+
+        if(ByteUtil.UnsafeComparer.INSTANCE.compareTo(actualFilter, dictionaryValues[i])==0) {
+          try {
+            encodedFilters.add(keyGenerator.generateKey(new int[]{i}));
+          } catch (KeyGenException e) {
+            //do nothing
+          }
+          break;
+        }
+      }
+    }
+
+    java.util.Comparator<byte[]> filterNoDictValueComaparator = new java.util.Comparator<byte[]>() {
+      @Override public int compare(byte[] filterMember1, byte[] filterMember2) {
+        return ByteUtil.UnsafeComparer.INSTANCE.compareTo(filterMember1, filterMember2);
+      }
+    };
+    Collections.sort(encodedFilters, filterNoDictValueComaparator);
+    return encodedFilters.toArray(new byte[encodedFilters.size()][]);
   }
 }
