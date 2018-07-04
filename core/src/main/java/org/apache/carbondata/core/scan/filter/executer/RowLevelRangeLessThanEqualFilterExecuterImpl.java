@@ -199,6 +199,7 @@ public class RowLevelRangeLessThanEqualFilterExecuterImpl extends RowLevelFilter
         if (rawColumnChunk.getMinValues() != null) {
           if (isScanRequired(rawColumnChunk.getMinValues()[i], this.filterRangeValues)) {
             BitSet bitSet;
+            DimensionColumnPage dimensionColumnPage = rawColumnChunk.decodeColumnPage(i);
             if (null != rawColumnChunk.getLocalDictionary()) {
               if (null == filterExecuter) {
                 filterExecuter = FilterUtil
@@ -209,17 +210,17 @@ public class RowLevelRangeLessThanEqualFilterExecuterImpl extends RowLevelFilter
               }
               if (!isExclude) {
                 bitSet = ((IncludeFilterExecuterImpl) filterExecuter)
-                    .getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                    .getFilteredIndexes(dimensionColumnPage,
                         rawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                         rawBlockletColumnChunks.getBitSetGroup(), i);
               } else {
                 bitSet = ((ExcludeFilterExecuterImpl) filterExecuter)
-                    .getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                    .getFilteredIndexes(dimensionColumnPage,
                         rawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                         rawBlockletColumnChunks.getBitSetGroup(), i);
               }
             } else {
-              bitSet = getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+              bitSet = getFilteredIndexes(dimensionColumnPage,
                   rawColumnChunk.getRowCount()[i]);
             }
             bitSetGroup.setBitSet(bitSet, i);

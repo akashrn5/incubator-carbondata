@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
 
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.datastore.FileReader;
 import org.apache.carbondata.core.datastore.chunk.DimensionColumnPage;
 import org.apache.carbondata.core.datastore.chunk.impl.DimensionRawColumnChunk;
@@ -325,6 +326,7 @@ public class CompressedDimensionChunkFileBasedReaderV3 extends AbstractChunkRead
           dictionary[i] = new byte[0];
         }
       }
+      dictionary[1] = CarbonCommonConstants.MEMBER_DEFAULT_VAL_ARRAY;
       return dictionary;
     }
     return null;

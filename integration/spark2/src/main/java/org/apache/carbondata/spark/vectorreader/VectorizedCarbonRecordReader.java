@@ -222,6 +222,7 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
     List<ProjectionDimension> queryDimension = queryModel.getProjectionDimensions();
     List<ProjectionMeasure> queryMeasures = queryModel.getProjectionMeasures();
     StructField[] fields = new StructField[queryDimension.size() + queryMeasures.size()];
+    boolean[] isNoDictStringField = new boolean[queryDimension.size() + queryMeasures.size()];
     for (int i = 0; i < queryDimension.size(); i++) {
       ProjectionDimension dim = queryDimension.get(i);
       if (dim.getDimension().hasEncoding(Encoding.DIRECT_DICTIONARY)) {
@@ -230,7 +231,9 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
         fields[dim.getOrdinal()] = new StructField(dim.getColumnName(),
             CarbonScalaUtil.convertCarbonToSparkDataType(generator.getReturnType()), true, null);
       } else if (!dim.getDimension().hasEncoding(Encoding.DICTIONARY)) {
-
+        if (dim.getDimension().getDataType() == DataTypes.STRING) {
+          isNoDictStringField[dim.getOrdinal()] = true;
+        }
         fields[dim.getOrdinal()] = new StructField(dim.getColumnName(),
             CarbonScalaUtil.convertCarbonToSparkDataType(dim.getDimension().getDataType()), true,
             null);
@@ -266,8 +269,7 @@ class VectorizedCarbonRecordReader extends AbstractRecordReader<Object> {
     CarbonColumnVector[] vectors = new CarbonColumnVector[fields.length];
     boolean[] filteredRows = new boolean[columnarBatch.capacity()];
     for (int i = 0; i < fields.length; i++) {
-      if (i < queryDimension.size() && CarbonScalaUtil
-          .isStringDataType(columnarBatch.column(i).dataType())) {
+      if (isNoDictStringField[i]) {
         columnarBatch.column(i).reserveDictionaryIds(columnarBatch.capacity());
       }
       vectors[i] = new ColumnarVectorWrapper(columnarBatch.column(i), filteredRows);

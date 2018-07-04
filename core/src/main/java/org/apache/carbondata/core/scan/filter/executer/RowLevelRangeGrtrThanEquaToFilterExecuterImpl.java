@@ -203,6 +203,7 @@ public class RowLevelRangeGrtrThanEquaToFilterExecuterImpl extends RowLevelFilte
               bitSet.flip(0, rawColumnChunk.getRowCount()[i]);
               bitSetGroup.setBitSet(bitSet, i);
             } else {
+              DimensionColumnPage dimensionColumnPage = rawColumnChunk.decodeColumnPage(i);
               BitSet bitSet = null;
               if (null != rawColumnChunk.getLocalDictionary()) {
                 if (null == filterExecuter) {
@@ -214,17 +215,17 @@ public class RowLevelRangeGrtrThanEquaToFilterExecuterImpl extends RowLevelFilte
                 }
                 if (!isExclude) {
                   bitSet = ((IncludeFilterExecuterImpl) filterExecuter)
-                      .getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                      .getFilteredIndexes(dimensionColumnPage,
                           rawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                           rawBlockletColumnChunks.getBitSetGroup(), i);
                 } else {
                   bitSet = ((ExcludeFilterExecuterImpl) filterExecuter)
-                      .getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                      .getFilteredIndexes(dimensionColumnPage,
                           rawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                           rawBlockletColumnChunks.getBitSetGroup(), i);
                 }
               } else {
-                bitSet = getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                bitSet = getFilteredIndexes(dimensionColumnPage,
                     rawColumnChunk.getRowCount()[i]);
               }
               bitSetGroup.setBitSet(bitSet, i);

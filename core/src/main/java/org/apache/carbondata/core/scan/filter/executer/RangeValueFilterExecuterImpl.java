@@ -369,6 +369,7 @@ public class RangeValueFilterExecuterImpl extends ValueBasedFilterExecuterImpl {
             bitSetGroup.setBitSet(bitSet, i);
           } else {
             BitSet bitSet;
+            DimensionColumnPage dimensionColumnPage = rawColumnChunk.decodeColumnPage(i);
             if (null != rawColumnChunk.getLocalDictionary()) {
               if (null == filterExecuter) {
                 filterExecuter = FilterUtil
@@ -379,17 +380,17 @@ public class RangeValueFilterExecuterImpl extends ValueBasedFilterExecuterImpl {
               }
               if (!isExclude) {
                 bitSet = ((IncludeFilterExecuterImpl) filterExecuter)
-                    .getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                    .getFilteredIndexes(dimensionColumnPage,
                         rawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                         blockChunkHolder.getBitSetGroup(), i);
               } else {
                 bitSet = ((ExcludeFilterExecuterImpl) filterExecuter)
-                    .getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+                    .getFilteredIndexes(dimensionColumnPage,
                         rawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                         blockChunkHolder.getBitSetGroup(), i);
               }
             } else {
-              bitSet = getFilteredIndexes(rawColumnChunk.decodeColumnPage(i),
+              bitSet = getFilteredIndexes(dimensionColumnPage,
                   rawColumnChunk.getRowCount()[i]);
             }
             bitSetGroup.setBitSet(bitSet, i);

@@ -105,15 +105,18 @@ public class IncludeFilterExecuterImpl implements FilterExecuter {
       }
       DimensionRawColumnChunk dimensionRawColumnChunk =
           rawBlockletColumnChunks.getDimensionRawColumnChunks()[chunkIndex];
-      filterValues =  FilterUtil
-            .getEncodedFilterValues(dimensionRawColumnChunk.getLocalDictionary(),
-                dimColumnExecuterInfo.getFilterKeys());
       BitSetGroup bitSetGroup = new BitSetGroup(dimensionRawColumnChunk.getPagesCount());
       for (int i = 0; i < dimensionRawColumnChunk.getPagesCount(); i++) {
         if (dimensionRawColumnChunk.getMaxValues() != null) {
           if (isScanRequired(dimensionRawColumnChunk.getMaxValues()[i],
-              dimensionRawColumnChunk.getMinValues()[i], filterValues)) {
-            BitSet bitSet = getFilteredIndexes(dimensionRawColumnChunk.decodeColumnPage(i),
+              dimensionRawColumnChunk.getMinValues()[i], dimColumnExecuterInfo.getFilterKeys())) {
+            DimensionColumnPage dimensionColumnPage = dimensionRawColumnChunk.decodeColumnPage(i);
+            if (null == filterValues) {
+              filterValues =  FilterUtil
+                  .getEncodedFilterValues(dimensionRawColumnChunk.getLocalDictionary(),
+                      dimColumnExecuterInfo.getFilterKeys());
+            }
+            BitSet bitSet = getFilteredIndexes(dimensionColumnPage,
                 dimensionRawColumnChunk.getRowCount()[i], useBitsetPipeLine,
                 rawBlockletColumnChunks.getBitSetGroup(), i);
             bitSetGroup.setBitSet(bitSet, i);

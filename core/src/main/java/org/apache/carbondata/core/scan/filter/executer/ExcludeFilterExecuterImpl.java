@@ -100,11 +100,11 @@ public class ExcludeFilterExecuterImpl implements FilterExecuter {
       }
       DimensionRawColumnChunk dimensionRawColumnChunk =
           rawBlockletColumnChunks.getDimensionRawColumnChunks()[chunkIndex];
+      DimensionColumnPage[] dimensionColumnPages =
+          dimensionRawColumnChunk.decodeAllColumnPages();
       filterValues = FilterUtil
           .getEncodedFilterValues(dimensionRawColumnChunk.getLocalDictionary(),
               dimColumnExecuterInfo.filterKeysForExclude);
-      DimensionColumnPage[] dimensionColumnPages =
-          dimensionRawColumnChunk.decodeAllColumnPages();
       BitSetGroup bitSetGroup = new BitSetGroup(dimensionRawColumnChunk.getPagesCount());
       for (int i = 0; i < dimensionColumnPages.length; i++) {
         BitSet bitSet = getFilteredIndexes(dimensionColumnPages[i],
