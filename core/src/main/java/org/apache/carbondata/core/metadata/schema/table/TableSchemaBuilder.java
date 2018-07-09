@@ -118,9 +118,7 @@ public class TableSchemaBuilder {
     if (blockletSize > 0) {
       property.put(CarbonV3DataFormatConstants.BLOCKLET_SIZE_IN_MB, String.valueOf(blockletSize));
     }
-    if (property.size() != 0) {
-      schema.setTableProperties(property);
-    }
+
     // Adding local dictionary, applicable only for String(dictionary exclude)
     if (isLocalDictionaryEnabled) {
       property.put(CarbonCommonConstants.LOCAL_DICTIONARY_ENABLE,
@@ -136,6 +134,9 @@ public class TableSchemaBuilder {
           allColumns.set(index, colSchema);
         }
       }
+    }
+    if (property.size() != 0) {
+      schema.setTableProperties(property);
     }
     return schema;
   }
