@@ -943,9 +943,19 @@ public final class CarbonCommonConstants {
   public static final String LOCAL_DICTIONARY_THRESHOLD = "local_dictionary_threshold";
 
   /**
-   * default value for local dictionary
+   * default value for local dictionary size in mb
    */
-  public static final String LOCAL_DICTIONARY_THRESHOLD_DEFAULT = "10000";
+  public static final String LOCAL_DICTIONARY_THRESHOLD_DEFAULT = "2";
+
+  /**
+   * max dictionary threshold size in mb
+   */
+  public static final int LOCAL_DICTIONARY_MAX_SIZE = 5;
+
+  /**
+   * max dictionary threshold size in mb
+   */
+  public static final int LOCAL_DICTIONARY_MIN_SIZE = 1;
 
   /**
    * max dictionary threshold

@@ -551,8 +551,8 @@ object CarbonScalaUtil {
     // considered which is 1000
     Try(localDictionaryThreshold.toInt) match {
       case scala.util.Success(value) =>
-        if (value < CarbonCommonConstants.LOCAL_DICTIONARY_MIN ||
-            value > CarbonCommonConstants.LOCAL_DICTIONARY_MAX) {
+        if (value < CarbonCommonConstants.LOCAL_DICTIONARY_MIN_SIZE ||
+            value > CarbonCommonConstants.LOCAL_DICTIONARY_MAX_SIZE) {
           false
         } else {
           true

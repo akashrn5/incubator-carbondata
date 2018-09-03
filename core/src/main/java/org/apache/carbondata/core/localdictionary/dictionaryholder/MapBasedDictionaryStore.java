@@ -16,6 +16,8 @@
  */
 package org.apache.carbondata.core.localdictionary.dictionaryholder;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -39,11 +41,11 @@ public class MapBasedDictionaryStore implements DictionaryStore {
   private final Map<DictionaryByteArrayWrapper, Integer> dictionary;
 
   /**
-   * maintaining array for reverse lookup
+   * maintaining list for reverse lookup
    * otherwise iterating everytime in map for reverse lookup will be slowdown the performance
    * It will only maintain the reference
    */
-  private DictionaryByteArrayWrapper[] referenceDictionaryArray;
+  private List<DictionaryByteArrayWrapper> referenceDictionaryArray;
 
   /**
    * dictionary threshold to check if threshold is reached
@@ -61,9 +63,10 @@ public class MapBasedDictionaryStore implements DictionaryStore {
   private long currentSize;
 
   public MapBasedDictionaryStore(int dictionaryThreshold) {
-    this.dictionaryThreshold = dictionaryThreshold;
+    // convert the threshold which is in mb to bytes and assign to @dictionaryThreshold
+    this.dictionaryThreshold = 1048576 * dictionaryThreshold;
     this.dictionary = new ConcurrentHashMap<>();
-    this.referenceDictionaryArray = new DictionaryByteArrayWrapper[dictionaryThreshold];
+    this.referenceDictionaryArray = new ArrayList<>(100000);
   }
 
   /**
@@ -81,19 +84,19 @@ public class MapBasedDictionaryStore implements DictionaryStore {
     Integer value = dictionary.get(key);
     // if value is null then dictionary is not present in store
     if (null == value) {
-      // aquire the lock
+      // acquire the lock
       synchronized (dictionary) {
         // check threshold
         checkIfThresholdReached();
         // get the value again as other thread might have added
         value = dictionary.get(key);
-        // double chekcing
+        // double checking
         if (null == value) {
           // increment the value
           value = ++lastAssignValue;
           currentSize += data.length;
           // if new value is greater than threshold
-          if (value > dictionaryThreshold || currentSize >= Integer.MAX_VALUE) {
+          if (currentSize > dictionaryThreshold || currentSize >= Integer.MAX_VALUE) {
             // set the threshold boolean to true
             isThresholdReached = true;
             // throw exception
@@ -101,7 +104,7 @@ public class MapBasedDictionaryStore implements DictionaryStore {
           }
           // add to reference array
           // position is -1 as dictionary value starts from 1
-          this.referenceDictionaryArray[value - 1] = key;
+          this.referenceDictionaryArray.add(key);
           dictionary.put(key, value);
         }
       }
@@ -140,6 +143,6 @@ public class MapBasedDictionaryStore implements DictionaryStore {
   @Override public byte[] getDictionaryKeyBasedOnValue(int value) {
     assert referenceDictionaryArray != null;
     // reference array index will be -1 of the value as dictionary value starts from 1
-    return referenceDictionaryArray[value - 1].getData();
+    return referenceDictionaryArray.get(value - 1).getData();
   }
 }
