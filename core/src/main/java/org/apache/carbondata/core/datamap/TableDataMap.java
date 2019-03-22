@@ -152,9 +152,15 @@ public final class TableDataMap extends OperationEventListener {
     int totalFiles = 0;
     int datamapsCount = 0;
     for (Segment segment : segments) {
-      for (DataMap dataMap: dataMaps.get(segment)) {
-        totalFiles += dataMap.getNumberOfEntries();
-        datamapsCount++;
+      List<DataMap> segmentDataMaps = dataMaps.get(segment);
+      // TODO: add validation for setsegments based the valid segments present in table status
+      // during set segment, if user is setting segment which is not present in tableStatus,
+      // in this case, datamap will be null
+      if (null != segmentDataMaps) {
+        for (DataMap dataMap : segmentDataMaps) {
+          totalFiles += dataMap.getNumberOfEntries();
+          datamapsCount++;
+        }
       }
     }
     int numOfThreadsForPruning = getNumOfThreadsForPruning();
