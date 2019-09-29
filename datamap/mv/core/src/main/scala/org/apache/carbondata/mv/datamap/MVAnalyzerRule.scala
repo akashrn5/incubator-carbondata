@@ -16,6 +16,8 @@
  */
 package org.apache.carbondata.mv.datamap
 
+import java.util
+
 import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.SparkSession
@@ -28,7 +30,7 @@ import org.apache.spark.sql.execution.datasources.LogicalRelation
 
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.constants.CarbonCommonConstants
-import org.apache.carbondata.core.datamap.DataMapStoreManager
+import org.apache.carbondata.core.datamap.{DataMapProvider, DataMapStoreManager}
 import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider
 import org.apache.carbondata.core.metadata.schema.table.DataMapSchema
 import org.apache.carbondata.core.util.ThreadLocalSessionInfo
@@ -43,9 +45,14 @@ import org.apache.carbondata.mv.rewrite.{SummaryDataset, SummaryDatasetCatalog}
 class MVAnalyzerRule(sparkSession: SparkSession) extends Rule[LogicalPlan] {
 
   // TODO Find way better way to get the provider.
-  private val dataMapProvider =
+  private val dataMapProvider: java.util.List[DataMapProvider] = new util
+  .ArrayList[DataMapProvider]()
+  dataMapProvider.add(
     DataMapManager.get().getDataMapProvider(null,
-      new DataMapSchema("", DataMapClassProvider.MV.getShortName), sparkSession)
+      new DataMapSchema("", DataMapClassProvider.MV.getShortName), sparkSession))
+  dataMapProvider.add(
+    DataMapManager.get().getDataMapProvider(null,
+      new DataMapSchema("", DataMapClassProvider.MV_TIMESERIES.getShortName), sparkSession))
 
   private val LOGGER = LogServiceFactory.getLogService(classOf[MVAnalyzerRule].getName)
 
@@ -82,9 +89,19 @@ class MVAnalyzerRule(sparkSession: SparkSession) extends Rule[LogicalPlan] {
         }
         Aggregate(grp, aExp, child)
     }
-    val catalog = DataMapStoreManager.getInstance().getDataMapCatalog(dataMapProvider,
-      DataMapClassProvider.MV.getShortName).asInstanceOf[SummaryDatasetCatalog]
-    if (needAnalysis && catalog != null && isValidPlan(plan, catalog)) {
+    val summaryDataSetCatalog: java.util.List[SummaryDatasetCatalog] = new util
+    .ArrayList[SummaryDatasetCatalog]()
+    dataMapProvider.asScala.foreach(dataMapProvider =>
+      summaryDataSetCatalog.add(
+        DataMapStoreManager.getInstance().getDataMapCatalog(dataMapProvider,
+          dataMapProvider.getDataMapSchema.getProviderName).asInstanceOf[SummaryDatasetCatalog]))
+    var catalog: SummaryDatasetCatalog = null
+    summaryDataSetCatalog.asScala.foreach { summaryDataSetCatalog =>
+      if (summaryDataSetCatalog != null && isValidPlan(plan, summaryDataSetCatalog)) {
+        catalog = summaryDataSetCatalog
+      }
+    }
+    if (needAnalysis && catalog != null) {
       val modularPlan = catalog.mvSession.sessionState.rewritePlan(plan).withMVTable
       if (modularPlan.find(_.rewritten).isDefined) {
         val compactSQL = modularPlan.asCompactSQL

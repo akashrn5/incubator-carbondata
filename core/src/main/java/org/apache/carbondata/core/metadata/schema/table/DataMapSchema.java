@@ -169,6 +169,7 @@ public class DataMapSchema implements Serializable, Writable {
     if (providerName.equalsIgnoreCase(DataMapClassProvider.PREAGGREGATE.getShortName()) ||
         providerName.equalsIgnoreCase(DataMapClassProvider.TIMESERIES.getShortName()) ||
         providerName.equalsIgnoreCase(DataMapClassProvider.MV.getShortName()) ||
+        providerName.equalsIgnoreCase(DataMapClassProvider.MV_TIMESERIES.getShortName()) ||
         ctasQuery != null) {
       return false;
     } else {

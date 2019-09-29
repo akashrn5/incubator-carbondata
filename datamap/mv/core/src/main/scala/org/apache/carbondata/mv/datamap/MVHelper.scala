@@ -25,22 +25,25 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.{CarbonEnv, CarbonToSparkAdapter, SparkSession}
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.CatalogTable
-import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Cast, Coalesce, Expression, NamedExpression, ScalaUDF, SortOrder}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Cast, Coalesce, Expression, Literal, NamedExpression, ScalaUDF, SortOrder}
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Join, Limit, LogicalPlan, Project}
 import org.apache.spark.sql.execution.command.{Field, PartitionerField, TableModel, TableNewProcessor}
 import org.apache.spark.sql.execution.command.table.{CarbonCreateTableCommand, CarbonDropTableCommand}
+import org.apache.spark.sql.execution.command.timeseries.{TimeSeriesFunction, TimeSeriesUtil}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.parser.CarbonSpark2SqlParser
-import org.apache.spark.sql.types.{ArrayType, MapType, StructType}
+import org.apache.spark.sql.types.{ArrayType, DateType, MapType, StructType}
 import org.apache.spark.util.{DataMapUtil, PartitionUtils}
 
 import org.apache.carbondata.common.exceptions.sql.MalformedCarbonCommandException
 import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.datamap.DataMapStoreManager
 import org.apache.carbondata.core.datastore.impl.FileFactory
-import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider
+import org.apache.carbondata.core.metadata.datatype.DataTypes
+import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider._
 import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, DataMapSchema, RelationIdentifier}
+import org.apache.carbondata.core.statusmanager.SegmentStatusManager
 import org.apache.carbondata.datamap.DataMapManager
 import org.apache.carbondata.mv.plans.modular._
 import org.apache.carbondata.mv.rewrite.{MVPlanWrapper, QueryRewrite, SummaryDatasetCatalog}
@@ -54,7 +57,10 @@ object MVHelper {
   def createMVDataMap(sparkSession: SparkSession,
       dataMapSchema: DataMapSchema,
       queryString: String,
-      ifNotExistsSet: Boolean = false): Unit = {
+      ifNotExistsSet: Boolean = false,
+      mainTable: CarbonTable): Unit = {
+    var timeSeriesFunction: String = null
+    var timeSeriesColumn: String = null
     val dmProperties = dataMapSchema.getProperties.asScala
     if (dmProperties.contains("streaming") && dmProperties("streaming").equalsIgnoreCase("true")) {
       throw new MalformedCarbonCommandException(
@@ -77,8 +83,20 @@ object MVHelper {
     if (selectTables.isEmpty) {
       throw new MalformedCarbonCommandException(
         s"Non-Carbon table does not support creating MV datamap")
+    } else if (selectTables.size >= 2 &&
+               dataMapSchema.getProviderName.equalsIgnoreCase(MV_TIMESERIES.getShortName)) {
+      throw new MalformedCarbonCommandException(
+        "Cannot create MV Timeseries datamap for queries involving more than one parent table or " +
+        "join queries on same table")
     }
-    val updatedQueryWithDb = validateMVQuery(sparkSession, logicalPlan)
+    val updatedQueryWithDb = validateMVQuery(sparkSession, logicalPlan, dataMapSchema)
+    if (dataMapSchema.getProviderName.equalsIgnoreCase(MV_TIMESERIES.getShortName)) {
+      val tuple = validateMVTimeSeriesQuery(sparkSession,
+        logicalPlan,
+        dataMapSchema)
+      timeSeriesColumn = tuple._1
+      timeSeriesFunction = tuple._2
+    }
     val fullRebuild = isFullReload(logicalPlan)
     var counter = 0
     // the ctas query can have duplicate columns, so we should take distinct and create fields,
@@ -138,6 +156,17 @@ object MVHelper {
       }
       parentTablesList.add(mainCarbonTable.get)
     }
+
+    // Check if load is in progress in any of the parent table mapped to the datamap
+    parentTablesList.asScala.foreach {
+      parentTable =>
+        if (SegmentStatusManager.isLoadInProgressInTable(parentTable)) {
+          throw new UnsupportedOperationException(
+            "Cannot create mv datamap table when insert is in progress on parent table: " +
+            parentTable.getTableName)
+        }
+    }
+
     tableProperties.put(CarbonCommonConstants.DATAMAP_NAME, dataMapSchema.getDataMapName)
     tableProperties.put(CarbonCommonConstants.PARENT_TABLES, parentTables.asScala.mkString(","))
 
@@ -152,6 +181,33 @@ object MVHelper {
           fields,
           fieldRelationMap,
           tableProperties)
+      if (timeSeriesFunction != null) {
+        if (null != mainTable) {
+          if (!mainTable.getTableName.equalsIgnoreCase(parentTablesList.get(0).getTableName)) {
+            throw new MalformedCarbonCommandException(
+              "Parent table name is different in Create and Select Statement")
+          }
+        }
+        val timeSeriesDataType = parentTablesList
+          .get(0)
+          .getTableInfo
+          .getFactTable
+          .getListOfColumns
+          .asScala
+          .filter(columnSchema => columnSchema.getColumnName
+            .equalsIgnoreCase(timeSeriesColumn))
+          .head
+          .getDataType
+        if (timeSeriesDataType.equals(DataTypes.DATE) ||
+            timeSeriesDataType.equals(DataTypes.TIMESTAMP)) {
+          if (timeSeriesDataType.equals(DataTypes.DATE)) {
+            TimeSeriesUtil.validateTimeSeriesGranularityForDate(timeSeriesFunction)
+          }
+        } else {
+          throw new MalformedCarbonCommandException(
+            "Event_time Column must be of TimeStamp or Date type")
+        }
+      }
     }
     dmProperties.foreach(t => tableProperties.put(t._1, t._2))
     val usePartitioning = dmProperties.getOrElse("partitioning", "true").toBoolean
@@ -226,7 +282,11 @@ object MVHelper {
     }
     dataMapSchema.setMainTableColumnList(mainTableToColumnsMap)
     dataMapSchema.setColumnsOrderMap(columnOrderMap)
-    dataMapSchema.setCtasQuery(updatedQueryWithDb)
+    if (null != timeSeriesFunction) {
+      dataMapSchema.setCtasQuery(queryString)
+    } else {
+      dataMapSchema.setCtasQuery(updatedQueryWithDb)
+    }
     dataMapSchema
       .setRelationIdentifier(new RelationIdentifier(tableIdentifier.database.get,
         tableIdentifier.table,
@@ -285,11 +345,11 @@ object MVHelper {
   }
 
   private def validateMVQuery(sparkSession: SparkSession,
-      logicalPlan: LogicalPlan): String = {
+      logicalPlan: LogicalPlan, dataMapSchema: DataMapSchema): String = {
     val dataMapProvider = DataMapManager.get().getDataMapProvider(null,
-      new DataMapSchema("", DataMapClassProvider.MV.getShortName), sparkSession)
+      new DataMapSchema("", dataMapSchema.getProviderName), sparkSession)
     var catalog = DataMapStoreManager.getInstance().getDataMapCatalog(dataMapProvider,
-      DataMapClassProvider.MV.getShortName).asInstanceOf[SummaryDatasetCatalog]
+      dataMapSchema.getProviderName).asInstanceOf[SummaryDatasetCatalog]
     if (catalog == null) {
       catalog = new SummaryDatasetCatalog(sparkSession)
     }
@@ -839,6 +899,58 @@ object MVHelper {
         }
       case _ => outputList
     }.get
+  }
+
+  private def validateMVTimeSeriesQuery(sparkSession: SparkSession,
+      logicalPlan: LogicalPlan, dataMapSchema: DataMapSchema): (String, String) = {
+    var timeSeriesColumn: String = null
+    var timeSeriesFunction: String = null
+    logicalPlan.transformExpressions {
+      case a@Alias(udf: ScalaUDF, _) =>
+        if (udf.function.isInstanceOf[TimeSeriesFunction]) {
+          if (null == timeSeriesColumn && null == timeSeriesFunction) {
+            udf.children.collect {
+              case attr: AttributeReference =>
+                timeSeriesColumn = attr.name
+              case l: Literal =>
+                timeSeriesFunction = l.value.toString
+              case Cast(exp, _, _) =>
+                exp match {
+                  case attribute: AttributeReference =>
+                    if (attribute.dataType.isInstanceOf[DateType]) {
+                      timeSeriesColumn = attribute.name
+                    }
+                  case _ =>
+                }
+            }
+          } else {
+            udf.children.collect {
+              case attr: AttributeReference =>
+                if (!attr.name.equalsIgnoreCase(timeSeriesColumn)) {
+                  throw new MalformedCarbonCommandException(
+                    "Multiple timeseries udf functions are defined in Select statement with " +
+                    "different timestamp columns")
+                }
+              case l: Literal =>
+                if (!timeSeriesFunction.equalsIgnoreCase(l.value.toString)) {
+                  throw new MalformedCarbonCommandException(
+                    "Multiple timeseries udf functions are defined in Select statement with " +
+                    "different granularities")
+                }
+            }
+          }
+        }
+        a
+    }
+    if (null == timeSeriesColumn && null == timeSeriesFunction) {
+      throw new MalformedCarbonCommandException(
+        "TimeSeries UDF has to be defined in Select statement for using MV Timeseries datamap")
+    } else if (null == timeSeriesColumn) {
+      throw new MalformedCarbonCommandException(
+        "MV Timeseries is only supported on Timestamp/Date column")
+    }
+    TimeSeriesUtil.validateTimeSeriesGranularity(timeSeriesFunction)
+    (timeSeriesColumn, timeSeriesFunction)
   }
 }
 

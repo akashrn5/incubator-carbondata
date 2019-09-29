@@ -31,7 +31,8 @@ public enum DataMapClassProvider {
   TIMESERIES("org.apache.carbondata.core.datamap.TimeSeriesDataMap", "timeseries"),
   LUCENE("org.apache.carbondata.datamap.lucene.LuceneFineGrainDataMapFactory","lucene"),
   BLOOMFILTER("org.apache.carbondata.datamap.bloom.BloomCoarseGrainDataMapFactory", "bloomfilter"),
-  MV("org.apache.carbondata.core.datamap.MVDataMap", "mv");
+  MV("org.apache.carbondata.core.datamap.MVDataMap", "mv"),
+  MV_TIMESERIES("org.apache.carbondata.core.datamap.MVTimeSeriesDataMap", "mv_timeseries");
 
   /**
    * Fully qualified class name of datamap

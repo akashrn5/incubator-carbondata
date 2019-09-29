@@ -94,6 +94,8 @@ public final class DataMapStoreManager {
   private static final Logger LOGGER =
       LogServiceFactory.getLogService(DataMapStoreManager.class.getName());
 
+  private final Object lockObject = new Object();
+
   private DataMapStoreManager() {
 
   }
@@ -233,19 +235,21 @@ public final class DataMapStoreManager {
    * @param dataMapProvider
    * @param dataMapSchema
    */
-  public synchronized void registerDataMapCatalog(DataMapProvider dataMapProvider,
+  public void registerDataMapCatalog(DataMapProvider dataMapProvider,
       DataMapSchema dataMapSchema) throws IOException {
-    initializeDataMapCatalogs(dataMapProvider);
-    String name = dataMapSchema.getProviderName();
-    DataMapCatalog dataMapCatalog = dataMapCatalogs.get(name);
-    if (dataMapCatalog == null) {
-      dataMapCatalog = dataMapProvider.createDataMapCatalog();
-      if (dataMapCatalog != null) {
-        dataMapCatalogs.put(name.toLowerCase(), dataMapCatalog);
+    synchronized (lockObject) {
+      initializeDataMapCatalogs(dataMapProvider);
+      String name = dataMapSchema.getProviderName();
+      DataMapCatalog dataMapCatalog = dataMapCatalogs.get(name);
+      if (dataMapCatalog == null) {
+        dataMapCatalog = dataMapProvider.createDataMapCatalog();
+        if (dataMapCatalog != null) {
+          dataMapCatalogs.put(name.toLowerCase(), dataMapCatalog);
+          dataMapCatalog.registerSchema(dataMapSchema);
+        }
+      } else {
         dataMapCatalog.registerSchema(dataMapSchema);
       }
-    } else {
-      dataMapCatalog.registerSchema(dataMapSchema);
     }
   }
 

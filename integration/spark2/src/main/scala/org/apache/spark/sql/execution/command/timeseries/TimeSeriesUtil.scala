@@ -21,11 +21,11 @@ import scala.collection.mutable
 import org.apache.spark.sql.execution.command.{DataMapField, Field}
 
 import org.apache.carbondata.common.exceptions.sql.{MalformedCarbonCommandException, MalformedDataMapCommandException}
+import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.metadata.datatype.DataTypes
-import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider.TIMESERIES
+import org.apache.carbondata.core.metadata.schema.datamap.DataMapClassProvider._
 import org.apache.carbondata.core.metadata.schema.datamap.Granularity
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable
-import org.apache.carbondata.core.preagg.TimeSeriesUDF
 
 /**
  * Utility class for time series to keep
@@ -161,5 +161,55 @@ object TimeSeriesUtil {
                      obj._2.aggregateFunction.isEmpty)
     isTimeSeriesColumnExits.get._2.aggregateFunction = timeSeriesFunction
   }
+
+  def validateTimeSeriesGranularityForDate(
+      timeSeriesFunction: String): Unit = {
+    for (granularity <- Granularity.values()) {
+      if (timeSeriesFunction.equalsIgnoreCase(granularity.getName
+        .substring(0, granularity.getName.indexOf(CarbonCommonConstants.UNDERSCORE)))) {
+        if (!(granularity.getName.equalsIgnoreCase(Granularity.DAY.getName) ||
+              granularity.getName.equalsIgnoreCase(Granularity.MONTH.getName) ||
+              granularity.getName.equalsIgnoreCase(Granularity.YEAR.getName))) {
+          throw new MalformedCarbonCommandException(
+            "Granularity should be DAY,MONTH or YEAR, for timeseries column of Date type")
+        }
+      }
+    }
+  }
+
+  /**
+   * validate TimeSeries Granularity
+   *
+   * @param timeSeriesFunction user defined granularity
+   */
+  def validateTimeSeriesGranularity(
+      timeSeriesFunction: String): Unit = {
+    var found = false
+    for (granularity <- Granularity.values()) {
+      if (timeSeriesFunction.equalsIgnoreCase(granularity.getName
+        .substring(0, granularity.getName.indexOf(CarbonCommonConstants.UNDERSCORE)))) {
+        found = true
+      }
+    }
+    if (!found) {
+      throw new MalformedCarbonCommandException("Granularity " + timeSeriesFunction + " is invalid")
+    }
+  }
+
+  def validateDMPropertiesForTimeSeries(dmProperties: Map[String, String]) {
+    if (dmProperties.contains(TIMESERIES_EVENTTIME)) {
+      throw new MalformedCarbonCommandException(
+        "Unsupported option: " + TIMESERIES_EVENTTIME + " in dmProperties. " +
+        "TimeSeries UDF has to be defined in Select Query")
+    }
+    for (granularity <- Granularity.values()) {
+      if (dmProperties.contains(granularity.getName)) {
+        throw new MalformedCarbonCommandException(
+          "Unsupported option: " + granularity.getName + "in dmProperties. " +
+          "TimeSeries UDF with granularity has to be defined in Select Query")
+      }
+    }
+  }
+
 }
 
