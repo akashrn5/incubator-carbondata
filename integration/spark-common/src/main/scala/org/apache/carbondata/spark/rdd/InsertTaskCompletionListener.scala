@@ -17,19 +17,23 @@
 
 package org.apache.carbondata.spark.rdd
 
+import scala.collection.JavaConverters._
+
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.carbondata.execution.datasources.tasklisteners.CarbonLoadTaskCompletionListener
 import org.apache.spark.sql.execution.command.ExecutionErrors
+import org.apache.spark.util.CollectionAccumulator
 
-import org.apache.carbondata.core.util.{DataTypeUtil, ThreadLocalTaskInfo}
+import org.apache.carbondata.core.util.{DataTypeUtil, MinMaxTime, ThreadLocalTaskInfo, TimestampMinMaxStats}
 import org.apache.carbondata.processing.loading.{DataLoadExecutor, FailureCauses}
 import org.apache.carbondata.spark.util.CommonUtil
 
 class InsertTaskCompletionListener(dataLoadExecutor: DataLoadExecutor,
-    executorErrors: ExecutionErrors)
+    executorErrors: ExecutionErrors, acc: CollectionAccumulator[List[MinMaxTime]])
   extends CarbonLoadTaskCompletionListener {
   override def onTaskCompletion(context: TaskContext): Unit = {
     try {
+      acc.add(TimestampMinMaxStats.getInstance().getTimeStampMinList.asScala.toList)
       dataLoadExecutor.close()
     }
     catch {

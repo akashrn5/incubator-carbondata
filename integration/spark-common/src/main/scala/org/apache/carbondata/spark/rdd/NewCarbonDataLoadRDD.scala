@@ -26,12 +26,12 @@ import scala.collection.mutable
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.{TaskAttemptID, TaskType}
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl
-import org.apache.spark.{Partition, SparkEnv, TaskContext}
+import org.apache.spark.{Accumulator, Partition, SparkEnv, TaskContext}
 import org.apache.spark.rdd.{DataLoadCoalescedRDD, DataLoadPartitionWrap, RDD}
 import org.apache.spark.serializer.SerializerInstance
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.execution.command.ExecutionErrors
-import org.apache.spark.util.SparkUtil
+import org.apache.spark.util.{CollectionAccumulator, SparkUtil}
 
 import org.apache.carbondata.common.CarbonIterator
 import org.apache.carbondata.common.logging.LogServiceFactory
@@ -39,7 +39,7 @@ import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.metadata.datatype.DataTypes
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentStatus}
-import org.apache.carbondata.core.util.{CarbonProperties, CarbonTimeStatisticsFactory, DataTypeUtil, ThreadLocalTaskInfo}
+import org.apache.carbondata.core.util.{CarbonProperties, CarbonTimeStatisticsFactory, DataTypeUtil, MinMaxTime, ThreadLocalTaskInfo, TimestampMinMaxStats}
 import org.apache.carbondata.core.util.path.CarbonTablePath
 import org.apache.carbondata.processing.loading.{DataLoadExecutor, FailureCauses, TableProcessingOperations}
 import org.apache.carbondata.processing.loading.csvinput.{BlockDetails, CSVInputFormat, CSVRecordReaderIterator}
@@ -99,7 +99,8 @@ class NewCarbonDataLoadRDD[K, V](
     @transient private val ss: SparkSession,
     result: DataLoadResult[K, V],
     carbonLoadModel: CarbonLoadModel,
-    blocksGroupBy: Array[(String, Array[BlockDetails])])
+    blocksGroupBy: Array[(String, Array[BlockDetails])],
+    accumulator: CollectionAccumulator[List[MinMaxTime]])
   extends CarbonRDD[(K, V)](ss, Nil) {
 
   ss.sparkContext.setLocalProperty("spark.scheduler.pool", "DDL")
@@ -146,7 +147,9 @@ class NewCarbonDataLoadRDD[K, V](
         val executor = new DataLoadExecutor()
         // in case of success, failure or cancelation clear memory and stop execution
         context
-          .addTaskCompletionListener { new InsertTaskCompletionListener(executor, executionErrors) }
+          .addTaskCompletionListener {
+            new InsertTaskCompletionListener(executor, executionErrors, accumulator)
+          }
         executor.execute(model,
           loader.storeLocation,
           recordReaders)
@@ -284,8 +287,8 @@ class NewDataFrameLoaderRDD[K, V](
         loader.initialize()
         val executor = new DataLoadExecutor
         // in case of success, failure or cancelation clear memory and stop execution
-        context
-          .addTaskCompletionListener(new InsertTaskCompletionListener(executor, executionErrors))
+//        context
+//          .addTaskCompletionListener(new InsertTaskCompletionListener(executor, executionErrors))
         executor.execute(model, loader.storeLocation, recordReaders.toArray)
       } catch {
         case e: NoRetryException =>

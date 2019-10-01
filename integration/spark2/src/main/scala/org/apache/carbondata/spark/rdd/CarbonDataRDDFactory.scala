@@ -34,7 +34,7 @@ import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, FileSplit}
-import org.apache.spark.{SparkEnv, TaskContext}
+import org.apache.spark.{Accumulator, SparkEnv, TaskContext}
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.rdd.{DataLoadCoalescedRDD, DataLoadPartitionCoalescer, NewHadoopRDD, RDD}
 import org.apache.spark.sql.{CarbonEnv, DataFrame, Row, SQLContext}
@@ -43,6 +43,7 @@ import org.apache.spark.sql.execution.command.{CompactionModel, ExecutionErrors,
 import org.apache.spark.sql.hive.DistributionUtil
 import org.apache.spark.sql.optimizer.CarbonFilters
 import org.apache.spark.sql.util.{CarbonException, SparkSQLUtil}
+import org.apache.spark.util.CollectionAccumulator
 
 import org.apache.carbondata.common.constants.LoggerAction
 import org.apache.carbondata.common.logging.LogServiceFactory
@@ -63,7 +64,7 @@ import org.apache.carbondata.core.metadata.schema.table.CarbonTable
 import org.apache.carbondata.core.mutate.CarbonUpdateUtil
 import org.apache.carbondata.core.scan.partition.PartitionUtil
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentStatus, SegmentStatusManager}
-import org.apache.carbondata.core.util.{ByteUtil, CarbonProperties, CarbonUtil, ThreadLocalSessionInfo}
+import org.apache.carbondata.core.util.{ByteUtil, CarbonProperties, CarbonUtil, MinMaxTime, ThreadLocalSessionInfo}
 import org.apache.carbondata.core.util.path.CarbonTablePath
 import org.apache.carbondata.events.{OperationContext, OperationListenerBus}
 import org.apache.carbondata.indexserver.IndexServer
@@ -320,6 +321,9 @@ object CarbonDataRDDFactory {
       dataFrame: Option[DataFrame] = None,
       updateModel: Option[UpdateTableModel] = None,
       operationContext: OperationContext): LoadMetadataDetails = {
+
+    // accumulator
+    val acc = sqlContext.sparkContext.collectionAccumulator[List[MinMaxTime]]
     // Check if any load need to be deleted before loading new data
     val carbonTable = carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable
     var status: Array[(String, (LoadMetadataDetails, ExecutionErrors))] = null
@@ -381,7 +385,7 @@ object CarbonDataRDDFactory {
           } else if (dataFrame.isDefined) {
             loadDataFrame(sqlContext, dataFrame, carbonLoadModel)
           } else {
-            loadDataFile(sqlContext, carbonLoadModel, hadoopConf)
+            loadDataFile(sqlContext, carbonLoadModel, hadoopConf, acc)
           }
           val newStatusMap = scala.collection.mutable.Map.empty[String, SegmentStatus]
           if (status.nonEmpty) {
@@ -1151,7 +1155,8 @@ object CarbonDataRDDFactory {
   private def loadDataFile(
       sqlContext: SQLContext,
       carbonLoadModel: CarbonLoadModel,
-      hadoopConf: Configuration
+      hadoopConf: Configuration,
+      accumulator: CollectionAccumulator[List[MinMaxTime]]
   ): Array[(String, (LoadMetadataDetails, ExecutionErrors))] = {
     /*
      * when data load handle by node partition
@@ -1242,11 +1247,13 @@ object CarbonDataRDDFactory {
       (entry._1, blockDetailsList)
     }.toArray
 
-    new NewCarbonDataLoadRDD(
+    val a = new NewCarbonDataLoadRDD(
       sqlContext.sparkSession,
       new DataLoadResultImpl(),
       carbonLoadModel,
-      blocksGroupBy
+      blocksGroupBy,
+      accumulator
     ).collect()
+    a
   }
 }

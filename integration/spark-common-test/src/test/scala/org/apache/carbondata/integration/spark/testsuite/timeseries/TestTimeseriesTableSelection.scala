@@ -46,29 +46,29 @@ class TestTimeseriesTableSelection extends QueryTest with BeforeAndAfterAll {
     sql("drop table if exists mainTable")
     sql(
       """
-        | CREATE TABLE mainTable(mytime timestamp, name string, age int)
+        | CREATE TABLE mainTable(age int,name string, mytime timestamp)
         | STORED BY 'org.apache.carbondata.format'
       """.stripMargin)
-    sql(
-      s"""
-         | CREATE DATAMAP agg0_second ON TABLE mainTable
-         | USING '$timeSeries'
-         | DMPROPERTIES (
-         | 'EVENT_TIME'='mytime',
-         | 'SECOND_GRANULARITY'='1')
-         | AS SELECT mytime, SUM(age) FROM mainTable
-         | GROUP BY mytime
-       """.stripMargin)
-    sql(
-      s"""
-         | CREATE DATAMAP agg0_minute ON TABLE mainTable
-         | USING '$timeSeries'
-         | DMPROPERTIES (
-         | 'EVENT_TIME'='mytime',
-         | 'minute_granularity'='1')
-         | AS SELECT mytime, SUM(age) FROM mainTable
-         | GROUP BY mytime
-       """.stripMargin)
+//    sql(
+//      s"""
+//         | CREATE DATAMAP agg0_second ON TABLE mainTable
+//         | USING '$timeSeries'
+//         | DMPROPERTIES (
+//         | 'EVENT_TIME'='mytime',
+//         | 'SECOND_GRANULARITY'='1')
+//         | AS SELECT mytime, SUM(age) FROM mainTable
+//         | GROUP BY mytime
+//       """.stripMargin)
+//    sql(
+//      s"""
+//         | CREATE DATAMAP agg0_minute ON TABLE mainTable
+//         | USING '$timeSeries'
+//         | DMPROPERTIES (
+//         | 'EVENT_TIME'='mytime',
+//         | 'minute_granularity'='1')
+//         | AS SELECT mytime, SUM(age) FROM mainTable
+//         | GROUP BY mytime
+//       """.stripMargin)
     sql(
       s"""
          | CREATE DATAMAP agg0_hour ON TABLE mainTable
@@ -79,38 +79,69 @@ class TestTimeseriesTableSelection extends QueryTest with BeforeAndAfterAll {
          | AS SELECT mytime, SUM(age) FROM mainTable
          | GROUP BY mytime
        """.stripMargin)
-    sql(
-      s"""
-         | CREATE DATAMAP agg0_day ON TABLE mainTable
-         | USING '$timeSeries'
-         | DMPROPERTIES (
-         | 'EVENT_TIME'='mytime',
-         | 'DAY_GRANULARITY'='1')
-         | AS SELECT mytime, SUM(age) FROM mainTable
-         | GROUP BY mytime
-       """.stripMargin)
-    sql(
-      s"""
-         | CREATE DATAMAP agg0_month ON TABLE mainTable
-         | USING '$timeSeries'
-         | DMPROPERTIES (
-         | 'EVENT_TIME'='mytime',
-         | 'MONTH_GRANULARITY'='1')
-         | AS SELECT mytime, SUM(age) FROM mainTable
-         | GROUP BY mytime
-       """.stripMargin)
-    sql(
-      s"""
-         | CREATE DATAMAP agg0_year ON TABLE mainTable
-         | USING '$timeSeries'
-         | DMPROPERTIES (
-         | 'EVENT_TIME'='mytime',
-         | 'YEAR_GRANULARITY'='1')
-         | AS SELECT mytime, SUM(age) FROM mainTable
-         | GROUP BY mytime
-       """.stripMargin)
+//    sql(
+//      s"""
+//         | CREATE DATAMAP agg0_day ON TABLE mainTable
+//         | USING '$timeSeries'
+//         | DMPROPERTIES (
+//         | 'EVENT_TIME'='mytime',
+//         | 'DAY_GRANULARITY'='1')
+//         | AS SELECT mytime, SUM(age) FROM mainTable
+//         | GROUP BY mytime
+//       """.stripMargin)
+//    sql(
+//      s"""
+//         | CREATE DATAMAP agg0_month ON TABLE mainTable
+//         | USING '$timeSeries'
+//         | DMPROPERTIES (
+//         | 'EVENT_TIME'='mytime',
+//         | 'MONTH_GRANULARITY'='1')
+//         | AS SELECT mytime, SUM(age) FROM mainTable
+//         | GROUP BY mytime
+//       """.stripMargin)
+//    sql(
+//      s"""
+//         | CREATE DATAMAP agg0_year ON TABLE mainTable
+//         | USING '$timeSeries'
+//         | DMPROPERTIES (
+//         | 'EVENT_TIME'='mytime',
+//         | 'YEAR_GRANULARITY'='1')
+//         | AS SELECT mytime, SUM(age) FROM mainTable
+//         | GROUP BY mytime
+//       """.stripMargin)
 
     sql(s"LOAD DATA LOCAL INPATH '$resourcesPath/timeseriestest.csv' into table mainTable")
+  }
+
+  test("test") {
+    sql("select * from maintable").show(false)
+    sql("select * from maintable_agg0_hour").show(false)
+    val df = sql(
+      """
+        | SELECT TIMESERIES(mytime,'hour'),sum(age)
+        | FROM mainTable
+        | GROUP BY TIMESERIES(mytime,'hour')
+      """.stripMargin)
+    df.explain(false)
+    df.show(false)
+//    preAggTableValidator(df.queryExecution.analyzed, "maintable_agg0_hour")
+//    checkAnswer(df, Row(Timestamp.valueOf("2016-02-23 09:00:00.0")))
+  }
+
+  test("test timeseries table selection 14: TIMESERIES(mytime,'hour') match") {
+    sql("select * from maintable").show(false)
+    sql("select * from maintable_agg0_hour").show(false)
+    val df = sql(
+      """
+        | SELECT TIMESERIES(mytime,'hour')
+        | FROM mainTable
+        | WHERE mytime ='2016-02-23 10:02:00'
+        | GROUP BY TIMESERIES(mytime,'hour')
+      """.stripMargin)
+    df.explain(false)
+    df.show(false)
+    preAggTableValidator(df.queryExecution.analyzed, "maintable_agg0_hour")
+    checkAnswer(df, Row(Timestamp.valueOf("2016-02-23 09:00:00.0")))
   }
 
   test("test timeseries table selection 1") {
@@ -220,19 +251,8 @@ class TestTimeseriesTableSelection extends QueryTest with BeforeAndAfterAll {
         | GROUP BY TIMESERIES(mytime,'hour')
         | ORDER BY TIMESERIES(mytime,'hour')
       """.stripMargin)
+    df.explain(false)
     preAggTableValidator(df.queryExecution.analyzed, "maintable")
-  }
-
-  test("test timeseries table selection 14: TIMESERIES(mytime,'hour') match") {
-    val df = sql(
-      """
-        | SELECT TIMESERIES(mytime,'hour')
-        | FROM mainTable
-        | WHERE TIMESERIES(mytime,'hour')='2016-02-23 09:00:00'
-        | GROUP BY TIMESERIES(mytime,'hour')
-      """.stripMargin)
-    preAggTableValidator(df.queryExecution.analyzed, "maintable_agg0_hour")
-    checkAnswer(df, Row(Timestamp.valueOf("2016-02-23 09:00:00.0")))
   }
 
   test("test timeseries table selection 15: TIMESERIES(mytime,'hour') not match") {
@@ -243,6 +263,8 @@ class TestTimeseriesTableSelection extends QueryTest with BeforeAndAfterAll {
         | WHERE TIMESERIES(mytime,'hour')='2016-02-23 09:01:00'
         | GROUP BY TIMESERIES(mytime,'hour')
       """.stripMargin)
+    df.explain(false)
+    df.show(false)
     preAggTableValidator(df.queryExecution.analyzed, "maintable_agg0_hour")
     checkExistence(df, false, "2016-02-23 09:00:00", "2016-02-23 09:01:00")
   }
@@ -874,9 +896,9 @@ class TestTimeseriesTableSelection extends QueryTest with BeforeAndAfterAll {
   }
 
   override def afterAll: Unit = {
-    dropDataMaps("maintable", "agg0_second", "agg0_hour", "agg0_day", "agg0_month", "agg0_year")
-    sql("drop table if exists mainTable")
-    CarbonProperties.getInstance()
-      .addProperty(CarbonCommonConstants.CARBON_TIMESTAMP_FORMAT, timestampFormat)
+//    dropDataMaps("maintable", "agg0_second", "agg0_hour", "agg0_day", "agg0_month", "agg0_year")
+//    sql("drop table if exists mainTable")
+//    CarbonProperties.getInstance()
+//      .addProperty(CarbonCommonConstants.CARBON_TIMESTAMP_FORMAT, timestampFormat)
   }
 }

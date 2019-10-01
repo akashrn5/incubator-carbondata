@@ -20,6 +20,7 @@ package org.apache.carbondata.processing.store.writer;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
@@ -40,12 +41,16 @@ import org.apache.carbondata.core.datastore.impl.FileFactory;
 import org.apache.carbondata.core.keygenerator.mdkey.NumberCompressor;
 import org.apache.carbondata.core.metadata.converter.SchemaConverter;
 import org.apache.carbondata.core.metadata.converter.ThriftWrapperSchemaConverterImpl;
+import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.metadata.index.BlockIndexInfo;
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
 import org.apache.carbondata.core.util.CarbonMetadataUtil;
 import org.apache.carbondata.core.util.CarbonProperties;
 import org.apache.carbondata.core.util.CarbonThreadFactory;
 import org.apache.carbondata.core.util.CarbonUtil;
+import org.apache.carbondata.core.util.DataTypeUtil;
+import org.apache.carbondata.core.util.MinMaxTime;
+import org.apache.carbondata.core.util.TimestampMinMaxStats;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.core.writer.CarbonIndexFileWriter;
 import org.apache.carbondata.format.BlockIndex;
@@ -412,6 +417,16 @@ public abstract class AbstractFactDataWriter implements CarbonFactDataWriter {
     indexHeader.setIs_sort(model.getSortScope() != null && model.getSortScope() != NO_SORT);
     // get the block index info thrift
     List<BlockIndex> blockIndexThrift = CarbonMetadataUtil.getBlockIndexInfo(blockIndexInfoList);
+    for (BlockIndex blockIndex: blockIndexThrift) {
+//      blockIndex.block_index.min_max_index.max_values.get(0);
+      Long max = (Long) DataTypeUtil
+          .getDataBasedOnDataTypeForNoDictionaryColumn(
+              blockIndex.block_index.min_max_index.max_values.get(0).array(), DataTypes.TIMESTAMP);
+      Long min = (Long) DataTypeUtil
+          .getDataBasedOnDataTypeForNoDictionaryColumn(
+              blockIndex.block_index.min_max_index.min_values.get(0).array(), DataTypes.TIMESTAMP);
+      TimestampMinMaxStats.getInstance().setTimeStampMinList(min, max);
+    }
     String indexFileName;
     if (enableDirectlyWriteDataToStorePath) {
       String rawFileName = model.getCarbonDataDirectoryPath() + CarbonCommonConstants.FILE_SEPARATOR
