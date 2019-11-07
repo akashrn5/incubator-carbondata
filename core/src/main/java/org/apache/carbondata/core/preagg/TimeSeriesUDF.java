@@ -22,6 +22,9 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
+import org.apache.carbondata.core.util.CarbonProperties;
+
 /**
  * class for applying timeseries udf
  */
@@ -76,6 +79,25 @@ public class TimeSeriesUDF {
         calendar.set(Calendar.MILLISECOND, 0);
         calendar.set(Calendar.SECOND, 0);
         break;
+      case FIVE_MINUTE:
+        getData(calendar, 5);
+        break;
+      case TEN_MINUTE:
+        getData(calendar, 10);
+        break;
+      case FIFTEEN_MINUTE:
+        getData(calendar, 15);
+        break;
+      case THIRTY_MINUTE:
+        getData(calendar, 30);
+        break;
+      case WEEK:
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        calendar.set(Calendar.DAY_OF_WEEK, calendar.getFirstDayOfWeek());
+        break;
       case HOUR:
         calendar.set(Calendar.MILLISECOND, 0);
         calendar.set(Calendar.SECOND, 0);
@@ -109,6 +131,12 @@ public class TimeSeriesUDF {
     return data;
   }
 
+  private void getData(Calendar calendar, int intervalTime) {
+    calendar.set(Calendar.MILLISECOND, 0);
+    calendar.set(Calendar.SECOND, 0);
+    calendar.set(Calendar.MINUTE, (calendar.get(Calendar.MINUTE) / intervalTime) * intervalTime);
+  }
+
   /**
    * Below method will be used to initialize the thread local
    */
@@ -119,10 +147,27 @@ public class TimeSeriesUDF {
     if (TIMESERIES_FUNCTION.isEmpty()) {
       TIMESERIES_FUNCTION.add("second");
       TIMESERIES_FUNCTION.add("minute");
+      TIMESERIES_FUNCTION.add("five_minute");
+      TIMESERIES_FUNCTION.add("ten_minute");
+      TIMESERIES_FUNCTION.add("fifteen_minute");
+      TIMESERIES_FUNCTION.add("thirty_minute");
       TIMESERIES_FUNCTION.add("hour");
       TIMESERIES_FUNCTION.add("day");
+      TIMESERIES_FUNCTION.add("week");
       TIMESERIES_FUNCTION.add("month");
       TIMESERIES_FUNCTION.add("year");
     }
+    int firstDayOfWeek;
+    try {
+      firstDayOfWeek = DaysOfWeekEnum.valueOf(CarbonProperties.getInstance()
+          .getProperty(CarbonCommonConstants.CARBON_TIMESERIES_FIRST_DAY_OF_WEEK,
+              CarbonCommonConstants.CARBON_TIMESERIES_FIRST_DAY_OF_WEEK_DEFAULT).toUpperCase())
+          .getOrdinal();
+    } catch (IllegalArgumentException ex) {
+      firstDayOfWeek = DaysOfWeekEnum.valueOf(CarbonProperties.getInstance()
+          .getProperty(CarbonCommonConstants.CARBON_TIMESERIES_FIRST_DAY_OF_WEEK_DEFAULT)
+          .toUpperCase()).getOrdinal();
+    }
+    calanderThreadLocal.get().setFirstDayOfWeek(firstDayOfWeek);
   }
 }

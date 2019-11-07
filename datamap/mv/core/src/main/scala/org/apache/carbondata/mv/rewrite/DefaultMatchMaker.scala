@@ -448,14 +448,29 @@ object GroupbyGroupbySelectOnlyChildDelta extends DefaultMatchPattern with Predi
       subsumer: ModularPlan,
       compensation: Option[ModularPlan]) = {
     if (subsumee.asInstanceOf[GroupBy].predicateList.contains(exprE)) {
-      if (exprListR.exists(_.semanticEquals(exprE)) || canEvaluate(exprE, exprListR)) true
+      if (exprListR.exists(_.semanticEquals(exprE)) || canEvaluate(exprE, exprListR) ||
+          isDerivableForUDF(exprE, exprListR)) true
       else false
     } else if (compensation.getOrElse(throw new RuntimeException("compensation cannot be None"))
       .asInstanceOf[Select].predicateList.contains(exprE)) {
-      if (canEvaluate(exprE, exprListR) || exprListR.exists(_.semanticEquals(exprE))) true
+      if (canEvaluate(exprE, exprListR) || exprListR.exists(_.semanticEquals(exprE)) ||
+          isDerivableForUDF(exprE, exprListR)) true
       else false
     } else {
       false
+    }
+  }
+
+  private def isDerivableForUDF(exprE: Expression, exprListR: Seq[Expression]): Boolean = {
+    var canBeDerived = false
+    exprListR.forall {
+      case a: ScalaUDF =>
+        a.references.foreach { a =>
+          canBeDerived = exprE.sql.contains(a.name)
+        }
+        canBeDerived
+      case _ =>
+        canBeDerived
     }
   }
 

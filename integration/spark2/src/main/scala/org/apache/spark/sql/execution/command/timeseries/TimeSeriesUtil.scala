@@ -187,7 +187,7 @@ object TimeSeriesUtil {
     var found = false
     for (granularity <- Granularity.values()) {
       if (timeSeriesFunction.equalsIgnoreCase(granularity.getName
-        .substring(0, granularity.getName.indexOf(CarbonCommonConstants.UNDERSCORE)))) {
+        .substring(0, granularity.getName.lastIndexOf(CarbonCommonConstants.UNDERSCORE)))) {
         found = true
       }
     }
