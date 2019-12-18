@@ -26,38 +26,29 @@ import scala.collection.mutable
 
 import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.mapreduce.{InputSplit, Job}
-import org.apache.spark.sql.{DataFrame, Row, SparkSession, SQLContext}
-import org.apache.spark.sql.execution.command.{CarbonMergerMapping, CompactionCallableModel, CompactionModel}
-import org.apache.spark.sql.util.{SparkSQLUtil, SparkTypeConverter}
-import org.apache.spark.util.MergeIndexUtil
-import org.apache.spark.CarbonInputMetrics
 import org.apache.spark.deploy.SparkHadoopUtil
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.GenericRow
+import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.sql.execution.command.{CarbonMergerMapping, CompactionCallableModel, CompactionModel}
+import org.apache.spark.sql.util.SparkSQLUtil
+import org.apache.spark.util.MergeIndexUtil
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.constants.SortScopeOptions.SortScope
 import org.apache.carbondata.core.datamap.{DataMapStoreManager, Segment}
 import org.apache.carbondata.core.datastore.impl.FileFactory
-import org.apache.carbondata.core.datastore.row.CarbonRow
-import org.apache.carbondata.core.metadata.datatype.{StructField, StructType}
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable
 import org.apache.carbondata.core.metadata.SegmentFileStore
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentStatusManager}
 import org.apache.carbondata.core.util.path.CarbonTablePath
 import org.apache.carbondata.core.util.CarbonUtil
 import org.apache.carbondata.events._
-import org.apache.carbondata.hadoop.api.{CarbonInputFormat, CarbonTableInputFormat, CarbonTableOutputFormat}
-import org.apache.carbondata.hadoop.CarbonProjection
+import org.apache.carbondata.hadoop.api.{CarbonInputFormat, CarbonTableInputFormat}
 import org.apache.carbondata.indexserver.DistributedRDDUtils
 import org.apache.carbondata.processing.loading.FailureCauses
-import org.apache.carbondata.processing.loading.constants.DataLoadProcessorConstants
 import org.apache.carbondata.processing.loading.model.CarbonLoadModel
 import org.apache.carbondata.processing.merger.{CarbonCompactionUtil, CarbonDataMergerUtil, CompactionType}
-import org.apache.carbondata.processing.util.TableOptionConstant
 import org.apache.carbondata.spark.load.DataLoadProcessBuilderOnSpark
 import org.apache.carbondata.spark.MergeResultImpl
-import org.apache.carbondata.store.CarbonRowReadSupport
 
 /**
  * This class is used to perform compaction on carbon table.
@@ -374,17 +365,14 @@ class CarbonTableCompactor(carbonLoadModel: CarbonLoadModel,
       sparkSession: SparkSession,
       carbonLoadModel: CarbonLoadModel,
       carbonMergerMapping: CarbonMergerMapping): Array[(String, Boolean)] = {
-    val splits = splitsOfSegments(
-      sparkSession,
-      carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable,
-      carbonMergerMapping.validSegments)
-    val dataFrame = DataLoadProcessBuilderOnSpark.createInputDataFrame(
-      sparkSession,
-      carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable,
-      splits.asScala)
+    val carbonTable = carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable
+      val dataFrame = DataLoadProcessBuilderOnSpark.createInputDataFrame(
+        sparkSession,
+        carbonTable)
+
     // generate LoadModel which can be used global_sort flow
     val outputModel = DataLoadProcessBuilderOnSpark.createLoadModelForGlobalSort(
-      sparkSession, carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable)
+      sparkSession, carbonTable)
     outputModel.setSegmentId(carbonMergerMapping.mergedLoadName.split("_")(1))
     DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
       sparkSession,
