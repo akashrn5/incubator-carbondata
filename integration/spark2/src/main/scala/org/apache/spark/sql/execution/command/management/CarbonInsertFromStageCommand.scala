@@ -258,14 +258,25 @@ case class CarbonInsertFromStageCommand(
       LOGGER.info(s"start to load ${splits.size} files into " +
                   s"${table.getDatabaseName}.${table.getTableName}")
       val start = System.currentTimeMillis()
-      val dataFrame = DataLoadProcessBuilderOnSpark.createInputDataFrame(spark, table)
-      DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
-        spark,
-        Option(dataFrame),
-        loadModel,
-        SparkSQLUtil.sessionState(spark).newHadoopConf()
-      ).map { row =>
+      try {
+        CarbonUtils
+          .threadSet(CarbonCommonConstants.CARBON_INPUT_SEGMENTS +
+                     table.getDatabaseName + CarbonCommonConstants.POINT + table.getTableName,
+            splits.map(s => s.asInstanceOf[CarbonInputSplit].getSegmentId).mkString(","))
+        val dataFrame = DataLoadProcessBuilderOnSpark.createInputDataFrame(spark, table)
+        DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
+          spark,
+          Option(dataFrame),
+          loadModel,
+          SparkSQLUtil.sessionState(spark).newHadoopConf()
+        ).map { row =>
           (row._1, FailureCauses.NONE == row._2._2.failureCauses)
+        }
+      } finally {
+        CarbonUtils
+          .threadUnset(CarbonCommonConstants.CARBON_INPUT_SEGMENTS +
+                       table.getDatabaseName + "." +
+                       table.getTableName)
       }
       LOGGER.info(s"finish data loading, time taken ${System.currentTimeMillis() - start}ms")
 

@@ -22,6 +22,7 @@ import java.util.Comparator
 import scala.collection.JavaConverters._
 
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.spark.{Accumulator, DataSkewRangePartitioner, TaskContext}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
@@ -436,8 +437,7 @@ object DataLoadProcessBuilderOnSpark {
      * datatype of column data and corresponding datatype in schema provided to create dataframe.
      * Since carbonScanRDD gives Long data for timestamp column and corresponding column datatype in
      * schema is Timestamp, this validation fails if we use createDataFrame API which takes rdd as
-     * input. Hence, We need to give the List[Row] compatible with the schema datatypes. So using
-     * the createDataFrame API which takes List[Row] and schema as input.
+     * input. Hence, using below API which creates dataframe from tablename.
      */
     sparkSession.sqlContext.table(carbonTable.getTableName)
   }

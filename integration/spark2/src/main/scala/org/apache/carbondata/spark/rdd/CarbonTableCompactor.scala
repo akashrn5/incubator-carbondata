@@ -27,7 +27,7 @@ import scala.collection.mutable
 import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.mapreduce.{InputSplit, Job}
 import org.apache.spark.deploy.SparkHadoopUtil
-import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.sql.{CarbonUtils, SparkSession, SQLContext}
 import org.apache.spark.sql.execution.command.{CarbonMergerMapping, CompactionCallableModel, CompactionModel}
 import org.apache.spark.sql.util.SparkSQLUtil
 import org.apache.spark.util.MergeIndexUtil
@@ -43,6 +43,7 @@ import org.apache.carbondata.core.util.path.CarbonTablePath
 import org.apache.carbondata.core.util.CarbonUtil
 import org.apache.carbondata.events._
 import org.apache.carbondata.hadoop.api.{CarbonInputFormat, CarbonTableInputFormat}
+import org.apache.carbondata.hadoop.CarbonInputSplit
 import org.apache.carbondata.indexserver.DistributedRDDUtils
 import org.apache.carbondata.processing.loading.FailureCauses
 import org.apache.carbondata.processing.loading.model.CarbonLoadModel
@@ -365,23 +366,40 @@ class CarbonTableCompactor(carbonLoadModel: CarbonLoadModel,
       sparkSession: SparkSession,
       carbonLoadModel: CarbonLoadModel,
       carbonMergerMapping: CarbonMergerMapping): Array[(String, Boolean)] = {
-    val carbonTable = carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable
+    val table = carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable
+    val splits = splitsOfSegments(
+      sparkSession,
+      table,
+      carbonMergerMapping.validSegments)
+    var loadResult: Array[(String, Boolean)] = null
+    try {
+      CarbonUtils
+        .threadSet(CarbonCommonConstants.CARBON_INPUT_SEGMENTS +
+                   table.getDatabaseName + CarbonCommonConstants.POINT + table.getTableName,
+          splits.asScala.map(s => s.asInstanceOf[CarbonInputSplit].getSegmentId).mkString(","))
       val dataFrame = DataLoadProcessBuilderOnSpark.createInputDataFrame(
         sparkSession,
-        carbonTable)
+        table)
 
-    // generate LoadModel which can be used global_sort flow
-    val outputModel = DataLoadProcessBuilderOnSpark.createLoadModelForGlobalSort(
-      sparkSession, carbonTable)
-    outputModel.setSegmentId(carbonMergerMapping.mergedLoadName.split("_")(1))
-    DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
-      sparkSession,
-      Option(dataFrame),
-      outputModel,
-      SparkSQLUtil.sessionState(sparkSession).newHadoopConf())
-      .map { row =>
-        (row._1, FailureCauses.NONE == row._2._2.failureCauses)
-      }
+      // generate LoadModel which can be used global_sort flow
+      val outputModel = DataLoadProcessBuilderOnSpark.createLoadModelForGlobalSort(
+        sparkSession, table)
+      outputModel.setSegmentId(carbonMergerMapping.mergedLoadName.split("_")(1))
+      loadResult = DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
+        sparkSession,
+        Option(dataFrame),
+        outputModel,
+        SparkSQLUtil.sessionState(sparkSession).newHadoopConf())
+        .map { row =>
+          (row._1, FailureCauses.NONE == row._2._2.failureCauses)
+        }
+    } finally {
+      CarbonUtils
+        .threadUnset(CarbonCommonConstants.CARBON_INPUT_SEGMENTS +
+                     table.getDatabaseName + "." +
+                     table.getTableName)
+    }
+    loadResult
   }
 
   /**
