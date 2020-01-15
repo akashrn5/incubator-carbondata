@@ -78,7 +78,7 @@ class CarbonSpark2SqlParser extends CarbonDDLSqlParser {
   protected lazy val startCommand: Parser[LogicalPlan] =
     loadManagement | showLoads | alterTable | restructure | updateTable | deleteRecords |
     datamapManagement | alterTableFinishStreaming | stream | cli |
-    cacheManagement | alterDataMap | insertStageData
+    cacheManagement | alterDataMap | insertStageData | showConsistency
 
   protected lazy val loadManagement: Parser[LogicalPlan] =
     deleteLoadsByID | deleteLoadsByLoadDate | cleanFiles | loadDataNew | addLoad
@@ -557,6 +557,12 @@ class CarbonSpark2SqlParser extends CarbonDDLSqlParser {
         CarbonShowLoadsCommand(
           convertDbNameToLowerCase(databaseName), tableName.toLowerCase(), limit,
           showHistory.isDefined)
+    }
+
+  protected lazy val showConsistency: Parser[LogicalPlan] =
+    SHOW ~> STORE ~> FOR ~> DATABASE ~>  ident <~ opt(";") ^^ {
+      case  dataBaseName =>
+          CarbonTableStoreConsistencyCommand(Some(dataBaseName))
     }
 
   protected lazy val showCache: Parser[LogicalPlan] =
