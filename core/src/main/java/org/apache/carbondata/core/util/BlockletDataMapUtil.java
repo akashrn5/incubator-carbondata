@@ -55,6 +55,7 @@ import org.apache.carbondata.core.metadata.blocklet.index.BlockletMinMaxIndex;
 import org.apache.carbondata.core.metadata.datatype.DataType;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable;
+import org.apache.carbondata.core.metadata.schema.table.RelationIdentifier;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonMeasure;
@@ -73,6 +74,13 @@ public class BlockletDataMapUtil {
 
   private static final Logger LOG =
       LogServiceFactory.getLogService(BlockletDataMapUtil.class.getName());
+
+  public static Set<TableBlockIndexUniqueIdentifier> getSegmentUniqueIdentifiers(Segment segment)
+      throws IOException {
+    Set<TableBlockIndexUniqueIdentifier> set = new HashSet<>();
+    set.add(new TableBlockIndexUniqueIdentifier(segment.getSegmentNo()));
+    return set;
+  }
 
   public static Map<String, BlockMetaInfo> getBlockMetaInfoMap(
       TableBlockIndexUniqueIdentifierWrapper identifierWrapper,
@@ -562,5 +570,35 @@ public class BlockletDataMapUtil {
         }
       }
     }
+  }
+
+  /**
+   * Validate whether load datamaps parallel is SET or not
+   *
+   * @param carbonTable
+   * @return
+   */
+  public static boolean loadDataMapsParallel(CarbonTable carbonTable) {
+    String parentTableName = carbonTable.getParentTableName();
+    String tableName;
+    String dbName;
+    if (!parentTableName.isEmpty()) {
+      // if the table is index table, then check the property on parent table name
+      // as index table is a child of the main table
+      tableName = parentTableName;
+      dbName = carbonTable.getDatabaseName();
+    } else if (carbonTable.isChildTableForMV()) {
+      // if the table is a perAggregate table, check the property on its parent table
+      // RelationIdentifier of a preAggregate table will give us the parent table name
+      RelationIdentifier relationIdentifier =
+          carbonTable.getTableInfo().getParentRelationIdentifiers().get(0);
+      tableName = relationIdentifier.getTableName();
+      dbName = relationIdentifier.getDatabaseName();
+    } else {
+      // if it is a normal carbon table, then check on the table name
+      tableName = carbonTable.getTableName();
+      dbName = carbonTable.getDatabaseName();
+    }
+    return CarbonProperties.getInstance().isDataMapParallelLoadingEnabled(dbName, tableName);
   }
 }

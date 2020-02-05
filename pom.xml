@@ -118,6 +118,7 @@
     <module>integration/flink-proxy</module>
     <module>integration/presto</module>
     <module>examples/flink</module>
+    <module>secondary_index</module>
     <module>streaming</module>
     <module>geo</module>
   </modules>
@@ -547,6 +548,10 @@
                 <sourceDirectory>${basedir}/store/sdk/src/main/java</sourceDirectory>
                 <sourceDirectory>${basedir}/datamap/bloom/src/main/java</sourceDirectory>
                 <sourceDirectory>${basedir}/datamap/lucene/src/main/java</sourceDirectory>
+                <sourceDirectory>${basedir}/secondary_index/src/main/java</sourceDirectory>
+                <sourceDirectory>${basedir}/secondary_index/src/main/scala</sourceDirectory>
+                <sourceDirectory>${basedir}/secondary_index/src/main/commonTo2.2And2.3</sourceDirectory>
+                <sourceDirectory>${basedir}/secondary_index/src/main/spark2.1</sourceDirectory>
               </sourceDirectories>
             </configuration>
           </plugin>

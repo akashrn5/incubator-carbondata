@@ -57,7 +57,7 @@ case class CarbonDropCacheCommand(tableIdentifier: TableIdentifier, internalCall
     }
     if (cache != null) {
       LOGGER.info("Clearing cache from driver side")
-      DataMapStoreManager.getInstance().clearDataMaps(carbonTable.getAbsoluteTableIdentifier)
+      DataMapStoreManager.getInstance().clearDataMaps(carbonTable.getAbsoluteTableIdentifier, true)
     }
     LOGGER.info("Drop cache request served for table " + carbonTable.getTableUniqueName)
   }

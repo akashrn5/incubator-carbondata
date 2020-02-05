@@ -37,6 +37,7 @@ import org.apache.carbondata.core.datamap.dev.BlockletSerializer;
 import org.apache.carbondata.core.datamap.dev.DataMap;
 import org.apache.carbondata.core.datamap.dev.DataMapFactory;
 import org.apache.carbondata.core.datamap.dev.cgdatamap.CoarseGrainDataMap;
+import org.apache.carbondata.core.datamap.dev.expr.DataMapDistributableWrapper;
 import org.apache.carbondata.core.datamap.dev.fgdatamap.FineGrainBlocklet;
 import org.apache.carbondata.core.datastore.block.SegmentProperties;
 import org.apache.carbondata.core.datastore.impl.FileFactory;
@@ -107,33 +108,25 @@ public final class TableDataMap extends OperationEventListener {
   /**
    * Pass the valid segments and prune the datamap using filter expression
    *
-   * @param allsegments
-   * @param filter
-   * @return
    */
-  public List<ExtendedBlocklet> prune(List<Segment> allsegments, final DataMapFilter filter,
+  public List<ExtendedBlocklet> prune(List<Segment> segments, final DataMapFilter filter,
       final List<PartitionSpec> partitions) throws IOException {
     final List<ExtendedBlocklet> blocklets = new ArrayList<>();
-    List<Segment> segments = getCarbonSegments(allsegments);
-    final Map<Segment, List<DataMap>> dataMaps;
-    if (filter == null || filter.isEmpty() || partitions == null || partitions.isEmpty()) {
-      dataMaps = dataMapFactory.getDataMaps(segments);
-    } else {
-      dataMaps = dataMapFactory.getDataMaps(segments, partitions);
-    }
+    final Map<Segment, List<DataMap>> dataMaps = dataMapFactory.getDataMaps(segments);
     // for non-filter queries
     // for filter queries
-    int totalFiles = 0;
     int datamapsCount = 0;
-    // In case if filter has matched partitions, then update the segments with datamap's
-    // segment list, as getDataMaps will return segments that matches the partition.
-    if (null != partitions && !partitions.isEmpty()) {
-      segments = new ArrayList<>(dataMaps.keySet());
-    }
+    int totalFiles = 0;
     for (Segment segment : segments) {
-      for (DataMap dataMap: dataMaps.get(segment)) {
-        totalFiles += dataMap.getNumberOfEntries();
-        datamapsCount++;
+      List<DataMap> segmentDataMaps = dataMaps.get(segment);
+      // TODO: add validation for setsegments based the valid segments present in table status
+      // during set segment, if user is setting segment which is not present in tableStatus,
+      // in this case, datamap will be null
+      if (null != segmentDataMaps) {
+        for (DataMap dataMap : segmentDataMaps) {
+          totalFiles += dataMap.getNumberOfEntries();
+          datamapsCount++;
+        }
       }
     }
     int numOfThreadsForPruning = CarbonProperties.getNumOfThreadsForPruning();
@@ -377,6 +370,11 @@ public final class TableDataMap extends OperationEventListener {
     return distributables;
   }
 
+  public DataMapDistributableWrapper toDistributableSegment(Segment segment, String uniqueId)
+      throws IOException {
+    return dataMapFactory.toDistributableSegment(segment, dataMapSchema, identifier, uniqueId);
+  }
+
   /**
    * This method returns all the datamaps corresponding to the distributable object
    *
@@ -524,6 +522,31 @@ public final class TableDataMap extends OperationEventListener {
       }
     }
     return totalRowCount;
+  }
+
+  /**
+   * Method to prune the segments based on task min/max values
+   *
+   * @param segments
+   * @param filterExp
+   * @return
+   * @throws IOException
+   */
+  public List<Segment> pruneSegments(List<Segment> segments, FilterResolverIntf filterExp)
+      throws IOException {
+    List<Segment> prunedSegments = new ArrayList<>(CarbonCommonConstants.DEFAULT_COLLECTION_SIZE);
+    for (Segment segment : segments) {
+      List<DataMap> dataMaps = dataMapFactory.getDataMaps(segment);
+      for (DataMap dataMap : dataMaps) {
+        if (dataMap.isScanRequired(filterExp)) {
+          // If any one task in a given segment contains the data that means the segment need to
+          // be scanned and we need to validate further data maps in the same segment
+          prunedSegments.add(segment);
+          break;
+        }
+      }
+    }
+    return prunedSegments;
   }
 
 }

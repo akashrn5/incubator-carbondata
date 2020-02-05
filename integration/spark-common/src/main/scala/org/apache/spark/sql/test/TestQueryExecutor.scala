@@ -61,6 +61,8 @@ object TestQueryExecutor {
       path.substring(0, path.indexOf("/tools/"))
     } else if (path.indexOf("/examples/") > -1) {
       path.substring(0, path.indexOf("/examples/"))
+    } else if (path.indexOf("/secondary_index/") > -1) {
+      path.substring(0, path.indexOf("/secondary_index/"))
     } else {
       path
     }

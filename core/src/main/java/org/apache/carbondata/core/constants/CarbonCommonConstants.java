@@ -1394,6 +1394,12 @@ public final class CarbonCommonConstants {
   public static final String CARBON_CUSTOM_BLOCK_DISTRIBUTION = "carbon.custom.block.distribution";
 
   /**
+   * Default value for CARBON_CUSTOM_BLOCK_DISTRIBUTION
+   */
+  @CarbonProperty(dynamicConfigurable = true)
+  public static final String CARBON_CUSTOM_BLOCK_DISTRIBUTION_DEFAULT = "false";
+
+  /**
    * This property defines how the tasks are split/combined and launch spark tasks during query
    */
   @CarbonProperty
@@ -2343,4 +2349,78 @@ public final class CarbonCommonConstants {
    * Default first day of week
    */
   public static final String CARBON_TIMESERIES_FIRST_DAY_OF_WEEK_DEFAULT = "SUNDAY";
+
+  @CarbonProperty
+  public static final String CARBON_PUSH_LEFTSEMIEXIST_JOIN_AS_IN_FILTER =
+      "carbon.infilter.subquery.pushdown.enable";
+
+
+  /**
+   * CARBON_PUSH_LEFTSEMIEXIST_JOIN_AS_IN_FILTER_DEFAULT
+   */
+  public static final String CARBON_PUSH_LEFTSEMIEXIST_JOIN_AS_IN_FILTER_DEFAULT = "false";
+
+  /**
+   * key to get broadcast record size from properties
+   */
+  @CarbonProperty
+  public static final String BROADCAST_RECORD_SIZE = "broadcast.record.size";
+
+  /**
+   * default broadcast record size
+   */
+  public static final String DEFAULT_BROADCAST_RECORD_SIZE = "100";
+
+  /**
+   * to enable SI lookup partial string
+   */
+  @CarbonProperty
+  public static final String ENABLE_SI_LOOKUP_PARTIALSTRING = "carbon.si.lookup.partialstring";
+
+  /**
+   * default value of ENABLE_SI_LOOKUP_PARTIALSTRING
+   */
+  public static final String ENABLE_SI_LOOKUP_PARTIALSTRING_DEFAULT = "true";
+
+  /**
+   * configuration for launching the number of threads during secondary index creation
+   */
+  @CarbonProperty
+  public static final String CARBON_SECONDARY_INDEX_CREATION_THREADS =
+      "carbon.secondary.index.creation.threads";
+
+  /**
+   * default value configuration for launching the number of threads during secondary
+   * index creation
+   */
+  public static final String CARBON_SECONDARY_INDEX_CREATION_THREADS_DEFAULT = "1";
+
+  /**
+   * max value configuration for launching the number of threads during secondary
+   * index creation
+   */
+  public static final int CARBON_SECONDARY_INDEX_CREATION_THREADS_MAX = 50;
+
+  /**
+   * threshold of high cardinality
+   */
+  @CarbonProperty
+  public static final String HIGH_CARDINALITY_THRESHOLD = "high.cardinality.threshold";
+
+  public static final String HIGH_CARDINALITY_THRESHOLD_DEFAULT = "1000000";
+
+  public static final int HIGH_CARDINALITY_THRESHOLD_MIN = 10000;
+
+  /**
+   * Enable SI segment Compaction / merge small files
+   */
+  @CarbonProperty
+  public static final String CARBON_SI_SEGMENT_MERGE = "carbon.si.segment.merge";
+
+  /**
+   * Default value for SI segment Compaction / merge small files
+   * Making this true degrade the LOAD performance
+   */
+  public static final String DEFAULT_CARBON_SI_SEGMENT_MERGE = "false";
+
 }
