@@ -25,6 +25,9 @@ import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.carbondata.common.logging.LogServiceFactory;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
+import org.apache.carbondata.core.util.CarbonProperties;
+import org.apache.carbondata.core.util.ObjectSerializationUtil;
 import org.apache.carbondata.core.util.ThreadLocalSessionInfo;
 import org.apache.carbondata.hadoop.api.CarbonOutputCommitter;
 import org.apache.carbondata.hadoop.api.CarbonTableOutputFormat;
@@ -129,6 +132,16 @@ public class CarbonDataMetaData extends HiveMetadata {
     } catch (IOException e) {
       throw new RuntimeException("error setting the output committer");
     }
+    try {
+      CarbonLoadModel updatedLoadModel = CarbonTableOutputFormat.getLoadModel(initialConfiguration);
+      String serializedModel = ObjectSerializationUtil.convertObjectToString(updatedLoadModel);
+      String presto_query_id = hiveSchema.getProperty("presto_query_id").substring(
+          hiveSchema.getProperty("presto_query_id").lastIndexOf(CarbonCommonConstants.UNDERSCORE));
+      CarbonProperties.getInstance().addProperty(presto_query_id, serializedModel);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
     return hiveInsertTableHandle;
   }
 

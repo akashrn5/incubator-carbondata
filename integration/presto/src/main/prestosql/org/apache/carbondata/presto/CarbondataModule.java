@@ -66,6 +66,7 @@ import io.prestosql.plugin.hive.PartitionUpdate;
 import io.prestosql.plugin.hive.RcFileFileWriterFactory;
 import io.prestosql.plugin.hive.TransactionalMetadata;
 import io.prestosql.plugin.hive.TypeTranslator;
+import io.prestosql.plugin.hive.gcs.GcsConfigurationProvider;
 import io.prestosql.plugin.hive.orc.OrcPageSourceFactory;
 import io.prestosql.plugin.hive.parquet.ParquetPageSourceFactory;
 import io.prestosql.plugin.hive.rcfile.RcFilePageSourceFactory;
@@ -99,6 +100,8 @@ public class CarbondataModule extends HiveModule {
 
     binder.bind(HdfsConfigurationInitializer.class).in(Scopes.SINGLETON);
     newSetBinder(binder, DynamicConfigurationProvider.class);
+    newSetBinder(binder, DynamicConfigurationProvider.class).addBinding().to(
+        CarbonConfigurationProvider.class).in(Scopes.SINGLETON);
     binder.bind(HdfsConfiguration.class).to(HiveHdfsConfiguration.class).in(Scopes.SINGLETON);
     binder.bind(HdfsEnvironment.class).in(Scopes.SINGLETON);
     binder.bind(DirectoryLister.class).to(CachingDirectoryLister.class).in(Scopes.SINGLETON);
