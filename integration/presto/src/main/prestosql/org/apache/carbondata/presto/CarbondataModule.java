@@ -66,7 +66,6 @@ import io.prestosql.plugin.hive.PartitionUpdate;
 import io.prestosql.plugin.hive.RcFileFileWriterFactory;
 import io.prestosql.plugin.hive.TransactionalMetadata;
 import io.prestosql.plugin.hive.TypeTranslator;
-import io.prestosql.plugin.hive.gcs.GcsConfigurationProvider;
 import io.prestosql.plugin.hive.orc.OrcPageSourceFactory;
 import io.prestosql.plugin.hive.parquet.ParquetPageSourceFactory;
 import io.prestosql.plugin.hive.rcfile.RcFilePageSourceFactory;
@@ -129,7 +128,7 @@ public class CarbondataModule extends HiveModule {
     binder.bind(HivePartitionManager.class).in(Scopes.SINGLETON);
     binder.bind(LocationService.class).to(HiveLocationService.class).in(Scopes.SINGLETON);
     binder.bind(HiveLocationService.class).to(CarbonDataLocationService.class).in(Scopes.SINGLETON);
-    binder.bind(HiveMetadataFactory.class).to(CarbonMetadataFactory.class).in(Scopes.SINGLETON);
+    binder.bind(HiveMetadataFactory.class).in(Scopes.SINGLETON);
     binder.bind(new TypeLiteral<Supplier<TransactionalMetadata>>() {
     }).to(HiveMetadataFactory.class).in(Scopes.SINGLETON);
     binder.bind(HiveTransactionManager.class).in(Scopes.SINGLETON);

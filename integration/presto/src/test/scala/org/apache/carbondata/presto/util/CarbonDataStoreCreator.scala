@@ -75,7 +75,7 @@ object CarbonDataStoreCreator {
         new CarbonTableIdentifier(dbName,
           tableName,
           UUID.randomUUID().toString))
-      val table: CarbonTable = createTable(absoluteTableIdentifier, useLocalDict)
+//      val table: CarbonTable = createTable(absoluteTableIdentifier, useLocalDict)
 //      val schema: CarbonDataLoadSchema = new CarbonDataLoadSchema(table)
 //      val loadModel: CarbonLoadModel = new CarbonLoadModel()
 //      import scala.collection.JavaConverters._
