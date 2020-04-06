@@ -91,7 +91,7 @@ class PrestoTestNonTransactionalTableFiles extends FunSuiteLike with BeforeAndAf
       .execute(
         "create table sdk_output.files(name varchar, age int, id tinyint, height double, salary " +
         "real, address varchar) with" +
-        "(format='CARBON') ")
+        "(format='CARBONDATA') ")
   }
 
   private def createTableBinary = {
