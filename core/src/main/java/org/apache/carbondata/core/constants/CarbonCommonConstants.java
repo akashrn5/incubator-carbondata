@@ -2525,4 +2525,9 @@ public final class CarbonCommonConstants {
    * property which defines the presto query default value
    */
   public static final String IS_QUERY_FROM_PRESTO_DEFAULT = "false";
+
+  /**
+   * property to send load model from coordinator to worker in presto
+   */
+  public static final String CARBON_PRESTO_LOAD_MODEL = "presto.carbondata.encoded.loadmodel";
 }
