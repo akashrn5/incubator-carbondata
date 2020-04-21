@@ -22,6 +22,7 @@ import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.datastore.filesystem.AlluxioCarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.CarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.HDFSCarbonFile;
+import org.apache.carbondata.core.datastore.filesystem.HDFSLocalCarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.LocalCarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.S3CarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.ViewFSCarbonFile;
@@ -110,6 +111,8 @@ public class DefaultFileTypeProvider implements FileTypeInterface {
         return new AlluxioCarbonFile(path);
       case VIEWFS:
         return new ViewFSCarbonFile(path);
+      case HDFS_LOCAL:
+        return new HDFSLocalCarbonFile(path);
       default:
         return new LocalCarbonFile(FileFactory.getUpdatedFilePath(path));
     }

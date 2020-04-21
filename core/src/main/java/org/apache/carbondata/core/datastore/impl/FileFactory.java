@@ -101,6 +101,7 @@ public final class FileFactory {
       case ALLUXIO:
       case VIEWFS:
       case S3:
+      case HDFS_LOCAL:
         return new DFSFileReaderImpl(configuration);
       default:
         return new FileReaderImpl();
@@ -142,6 +143,8 @@ public final class FileFactory {
         .startsWith(CarbonCommonConstants.S3A_PREFIX) || lowerCase
         .startsWith(CarbonCommonConstants.S3_PREFIX)) {
       return FileType.S3;
+    } else if (lowerCase.startsWith(CarbonCommonConstants.LOCAL_FILE_PREFIX)) {
+      return FileType.HDFS_LOCAL;
     }
     return null;
   }
@@ -157,6 +160,8 @@ public final class FileFactory {
         .startsWith(CarbonCommonConstants.S3A_PREFIX) || path
         .startsWith(CarbonCommonConstants.S3_PREFIX)) {
       return FileType.S3;
+    } else if (path.startsWith(CarbonCommonConstants.LOCAL_FILE_PREFIX)) {
+      return FileType.HDFS_LOCAL;
     }
     return null;
   }
@@ -425,7 +430,7 @@ public final class FileFactory {
   }
 
   public enum FileType {
-    LOCAL, HDFS, ALLUXIO, VIEWFS, S3, CUSTOM
+    LOCAL, HDFS, ALLUXIO, VIEWFS, S3, CUSTOM, HDFS_LOCAL
   }
 
   /**
@@ -447,6 +452,7 @@ public final class FileFactory {
       case VIEWFS:
       case S3:
       case CUSTOM:
+      case HDFS_LOCAL:
       default:
         return filePath;
     }
@@ -466,6 +472,7 @@ public final class FileFactory {
       case VIEWFS:
       case S3:
       case CUSTOM:
+      case HDFS_LOCAL:
         return filePath;
       case ALLUXIO:
         return StringUtils.startsWith(filePath, "alluxio") ? filePath : "alluxio:///" + filePath;
@@ -505,6 +512,7 @@ public final class FileFactory {
       case VIEWFS:
       case S3:
       case CUSTOM:
+      case HDFS_LOCAL:
         Path path = new Path(filePath);
         FileSystem fs = path.getFileSystem(getConfiguration());
         return fs.getContentSummary(path).getLength();
@@ -546,6 +554,7 @@ public final class FileFactory {
       case ALLUXIO:
       case VIEWFS:
       case CUSTOM:
+      case HDFS_LOCAL:
         try {
           Path path = new Path(directoryPath);
           FileSystem fs = path.getFileSystem(getConfiguration());
