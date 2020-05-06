@@ -57,19 +57,28 @@ public class ArrayStreamReader extends CarbonColumnVectorImpl implements PrestoV
 
   @Override
   public void putObject(int rowId, Object value) {
-    if (this.childBlock == null) {
-      childBlock = ((SliceStreamReader) getChildrenVector()).buildBlock();
-      // byte[] val = (byte[]) value;
-      // offsetVector = createOffsetVector(val);
-      // valueIsNull = createValueIsNull(offsetVector);
-      type.writeObject(builder, childBlock);
+    if (value == null) {
+      putNull(rowId);
     } else {
-      // Block arrayBlock = ArrayBlock.fromElementBlock(this.batchSize,
-      // Optional.ofNullable(valueIsNull), offsetVector, childBlock);
-      // type.writeObject(builder, childBlock);
-      // arrayBlock.writePositionTo(0, (BlockBuilder) arrayBlock);
-      // type.writeObject(builder, StructuralTestUtil().arrayBlockOf());
+      getChildrenVector().putObject(rowId, value);
+      if (childBlock == null) {
+        childBlock = ((SliceStreamReader) getChildrenVector()).buildBlock();
+      }
+      type.writeObject(builder, childBlock);
     }
+//    if (this.childBlock == null) {
+//      childBlock = ((SliceStreamReader) getChildrenVector()).buildBlock();
+//      // byte[] val = (byte[]) value;
+//      // offsetVector = createOffsetVector(val);
+//      // valueIsNull = createValueIsNull(offsetVector);
+//      type.writeObject(builder, childBlock);
+//    } else {
+//      // Block arrayBlock = ArrayBlock.fromElementBlock(this.batchSize,
+//      // Optional.ofNullable(valueIsNull), offsetVector, childBlock);
+//      // type.writeObject(builder, childBlock);
+//      // arrayBlock.writePositionTo(0, (BlockBuilder) arrayBlock);
+//      // type.writeObject(builder, StructuralTestUtil().arrayBlockOf());
+//    }
   }
 
   @Override

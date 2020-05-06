@@ -263,8 +263,11 @@ public class DirectCompressCodec implements ColumnPageCodec {
       int rowId = 0;
       if (pageDataType == DataTypes.BYTE_ARRAY) {
         if (DataTypes.isArrayType(vectorDataType)) {
-          vector.getColumnVector().getChildrenVector().putObject(rowId, pageData);
-          vector.putObject(rowId, pageData);
+          for (int i = 0; i < pageSize; i++) {
+            //            vector.getColumnVector().getChildrenVector().putObject(rowId, pageData);
+            //          }
+            vector.putObject(rowId, pageData);
+          }
         }
       } else if (pageDataType == DataTypes.BOOLEAN || pageDataType == DataTypes.BYTE) {
         if (vectorDataType == DataTypes.SHORT) {

@@ -251,7 +251,7 @@ class PrestoTestNonTransactionalTableFiles extends FunSuiteLike with BeforeAndAf
   test("test complex") {
     buildComplexTest()
     val actualResult: List[Map[String, Any]] = prestoServer
-      .executeQuery("SELECT address FROM files")
+      .executeQuery("SELECT age,address FROM files")
     var actual = (actualResult(0)("address").asInstanceOf[PrestoArray].getArray()).asInstanceOf[Array[Object]](0).toString
     actual = actual.replaceAll("\\p{C}", " ").trim.replaceAll(" +", " ")
     val expected = "abc defg abc defg abc defg"

@@ -482,8 +482,11 @@ class CarbondataPageSource implements ConnectorPageSource {
       try {
         CarbonColumnVectorImpl childrenVector =
             vectorReader.getColumnarBatch().column(columnIndex).getChildrenVector();
-        if (childrenVector != null) childrenVector.loadPage();
-        vectorReader.getColumnarBatch().column(columnIndex).loadPage();
+        if (childrenVector != null){
+          childrenVector.loadPage();
+        } else {
+          vectorReader.getColumnarBatch().column(columnIndex).loadPage();
+        }
         PrestoVectorBlockBuilder blockBuilder =
             (PrestoVectorBlockBuilder) vectorReader.getColumnarBatch().column(columnIndex);
         blockBuilder.setBatchSize(lazyBlock.getPositionCount());
