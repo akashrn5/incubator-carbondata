@@ -468,7 +468,7 @@ object DeleteExecution {
     }
   }
 
-  private def createCarbonInputFormat(absoluteTableIdentifier: AbsoluteTableIdentifier) :
+  def createCarbonInputFormat(absoluteTableIdentifier: AbsoluteTableIdentifier) :
   (CarbonTableInputFormat[Array[Object]], Job) = {
     val carbonInputFormat = new CarbonTableInputFormat[Array[Object]]()
     val jobConf: JobConf = new JobConf(FileFactory.getConfiguration)

@@ -83,6 +83,8 @@ public class CarbonWriterBuilder {
   private Configuration hadoopConf;
   private String writtenByApp;
   private String[] invertedIndexColumns;
+  private String segmentNo;
+
   private enum WRITER_TYPE {
     CSV, AVRO, JSON
   }
@@ -164,6 +166,11 @@ public class CarbonWriterBuilder {
    */
   public CarbonWriterBuilder taskNo(String taskNo) {
     this.taskNo = taskNo;
+    return this;
+  }
+
+  public CarbonWriterBuilder segmentNo(String segmentNo) {
+    this.segmentNo = segmentNo;
     return this;
   }
 
@@ -689,7 +696,9 @@ public class CarbonWriterBuilder {
 
   public CarbonLoadModel buildLoadModel(Schema carbonSchema)
       throws IOException, InvalidLoadOptionException {
-    timestamp = System.currentTimeMillis();
+    if (timestamp == 0L) {
+      timestamp = System.currentTimeMillis();
+    }
     // validate long_string_column
     Set<String> longStringColumns = new HashSet<>();
     if (options != null && options.get(CarbonCommonConstants.LONG_STRING_COLUMNS) != null) {
@@ -916,6 +925,7 @@ public class CarbonWriterBuilder {
     }
     CarbonLoadModelBuilder builder = new CarbonLoadModelBuilder(table);
     CarbonLoadModel model = builder.build(options, timestamp, taskNo);
+    model.setSegmentId(segmentNo);
     setCsvHeader(model);
     return model;
   }

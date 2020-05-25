@@ -707,7 +707,7 @@ object CarbonDataRDDFactory {
    * @param segmentDetails
    * @return
    */
-  private def updateSegmentFiles(
+   def updateSegmentFiles(
       carbonTable: CarbonTable,
       segmentDetails: util.HashSet[Segment],
       updateModel: UpdateTableModel,
