@@ -310,7 +310,8 @@ object CarbonSource {
       // remove schema string from map as we don't store carbon schema to hive metastore
       val map = CarbonUtil.removeSchemaFromMap(properties.asJava)
       val updatedFormat = storageFormat.copy(properties = map.asScala.toMap)
-      table.copy(storage = updatedFormat, tableType = updatedTableType)
+      val updatedSchema = CarbonSparkUtil.updateSchema(table.schema)
+      table.copy(storage = updatedFormat, schema = updatedSchema, tableType = updatedTableType)
     } else {
       table.copy(tableType = updatedTableType)
     }
@@ -442,8 +443,9 @@ case class CaseInsensitiveMap[T] (originalMap: Map[String, T]) extends Map[Strin
 
   override def get(k: String): Option[T] = keyLowerCasedMap.get(k.toLowerCase(Locale.ROOT))
 
-  override def contains(k: String): Boolean =
+  override def contains(k: String): Boolean = {
     keyLowerCasedMap.contains(k.toLowerCase(Locale.ROOT))
+  }
 
   override def +[B1 >: T](kv: (String, B1)): Map[String, B1] = {
     new CaseInsensitiveMap(originalMap + kv)

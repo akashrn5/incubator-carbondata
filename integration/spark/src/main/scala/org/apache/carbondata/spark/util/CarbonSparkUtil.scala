@@ -140,6 +140,15 @@ object CarbonSparkUtil {
     struct.copy(fields = struct.map(f => updateField(f)).toArray)
   }
 
+  def updateSchema(struct: StructType): StructType = {
+    struct.copy(fields = struct
+      .map(f => f.copy(name = if (f.name.contains("\\")) {
+        f.name.toLowerCase.replace("""\\""", """\\\\""")
+      } else {
+        f.name.toLowerCase
+      }, dataType = f.dataType)).toArray)
+  }
+
   def updateArray(array: ArrayType): ArrayType = {
     array.copy(elementType = updateDataType(array.elementType))
   }
@@ -152,7 +161,11 @@ object CarbonSparkUtil {
   }
 
   def updateField(field: StructField): StructField = {
-    field.copy(name = field.name.toLowerCase, dataType = updateDataType(field.dataType))
+    field.copy(name = if (field.name.contains("\\")) {
+      field.name.toLowerCase.replace("""\\""", """\\\\""")
+    } else {
+      field.name.toLowerCase
+    }, dataType = updateDataType(field.dataType))
   }
 
   def updateDataType(dataType: DataType): DataType = {

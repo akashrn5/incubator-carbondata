@@ -65,6 +65,11 @@ class TestSIWithSecondryIndex extends QueryTest with BeforeAndAfterAll {
     }
   }
 
+  test("issue") {
+    sql("create table sourc4(name string, `a\bc` int) stored as carbondata")
+    sql("describe formatted sourc4").show(false)
+  }
+
   test ("test alter drop all columns of the SI table") {
     sql("create table table_drop_columns (name string, id string, country string) stored as carbondata")
     sql("insert into table_drop_columns select 'xx', '1', 'china'")
