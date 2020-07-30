@@ -208,13 +208,15 @@ object DeleteExecution {
       var deleteStatus = SegmentStatus.LOAD_FAILURE
       val LOGGER = LogServiceFactory.getLogService(this.getClass.getName)
       // here key = segment/blockName
-      val blockName = if (carbonTable.isHivePartitionTable) {
-        CarbonUpdateUtil.getBlockName(CarbonTablePath.addDataPartPrefix(key))
+      var blockName = if (carbonTable.isHivePartitionTable) {
+        key
       } else {
-        CarbonUpdateUtil
-          .getBlockName(
-            CarbonTablePath.addDataPartPrefix(key.split(CarbonCommonConstants.FILE_SEPARATOR)(1)))
+        key.split(CarbonCommonConstants.FILE_SEPARATOR)(1)
       }
+      val strings = blockName.split("")
+      strings(3) = CarbonTablePath.BATCH_PREFIX
+      blockName = strings.mkString
+      blockName = CarbonUpdateUtil.getBlockName(CarbonTablePath.addDataPartPrefix(blockName))
       val deleteDeltaBlockDetails: DeleteDeltaBlockDetails = new DeleteDeltaBlockDetails(blockName)
       val resultIter =
         new Iterator[(SegmentStatus, (SegmentUpdateDetails, ExecutionErrors, Long))] {
@@ -228,11 +230,11 @@ object DeleteExecution {
               .get(oneRow.fieldIndex(CarbonCommonConstants.CARBON_IMPLICIT_COLUMN_TUPLEID)).toString
             val (offset, blockletId, pageId) = if (carbonTable.isHivePartitionTable) {
               (CarbonUpdateUtil.getRequiredFieldFromTID(TID,
-                TupleIdEnum.OFFSET.getTupleIdIndex - 1),
+                TupleIdEnum.OFFSET.getTupleIdIndex),
                 CarbonUpdateUtil.getRequiredFieldFromTID(TID,
-                  TupleIdEnum.BLOCKLET_ID.getTupleIdIndex - 1),
+                  TupleIdEnum.BLOCKLET_ID.getTupleIdIndex),
                 Integer.parseInt(CarbonUpdateUtil.getRequiredFieldFromTID(TID,
-                  TupleIdEnum.PAGE_ID.getTupleIdIndex - 1)))
+                  TupleIdEnum.PAGE_ID.getTupleIdIndex)))
             } else {
               (CarbonUpdateUtil.getRequiredFieldFromTID(TID, TupleIdEnum.OFFSET),
                 CarbonUpdateUtil.getRequiredFieldFromTID(TID, TupleIdEnum.BLOCKLET_ID),
@@ -264,18 +266,20 @@ object DeleteExecution {
           if (null == columnCompressor) {
             columnCompressor = CompressorFactory.getInstance.getCompressor.getName
           }
+          var blockNameFromTupleID = CarbonUpdateUtil.getRequiredFieldFromTID(TID,
+            TupleIdEnum.BLOCK_ID)
+          val strings = blockNameFromTupleID.split("")
+          strings(3) = CarbonTablePath.BATCH_PREFIX
+          blockNameFromTupleID = strings.mkString
           val completeBlockName = if (carbonTable.isHivePartitionTable) {
             CarbonTablePath
               .addDataPartPrefix(
-                CarbonUpdateUtil.getRequiredFieldFromTID(TID,
-                  TupleIdEnum.BLOCK_ID.getTupleIdIndex - 1) + CarbonCommonConstants.POINT +
-                columnCompressor +
+                blockNameFromTupleID + CarbonCommonConstants.POINT + columnCompressor +
                 CarbonCommonConstants.FACT_FILE_EXT)
           } else {
             CarbonTablePath
               .addDataPartPrefix(
-                CarbonUpdateUtil.getRequiredFieldFromTID(TID, TupleIdEnum.BLOCK_ID) +
-                CarbonCommonConstants.POINT + columnCompressor +
+                blockNameFromTupleID + CarbonCommonConstants.POINT + columnCompressor +
                 CarbonCommonConstants.FACT_FILE_EXT)
           }
           val deleteDeltaPath = CarbonUpdateUtil

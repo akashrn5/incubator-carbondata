@@ -84,7 +84,7 @@ public class CarbonUpdateUtil {
    */
   public static String getSegmentWithBlockFromTID(String Tid, boolean isPartitionTable) {
     if (isPartitionTable) {
-      return getRequiredFieldFromTID(Tid, TupleIdEnum.SEGMENT_ID);
+      return getRequiredFieldFromTID(Tid, TupleIdEnum.PARTITION_SEGMENT_ID);
     }
     return getRequiredFieldFromTID(Tid, TupleIdEnum.SEGMENT_ID)
         + CarbonCommonConstants.FILE_SEPARATOR + getRequiredFieldFromTID(Tid, TupleIdEnum.BLOCK_ID);
@@ -94,9 +94,10 @@ public class CarbonUpdateUtil {
    * Returns block path from tuple id
    */
   public static String getTableBlockPath(String tid, String tablePath, boolean isStandardTable) {
-    String partField = getRequiredFieldFromTID(tid, TupleIdEnum.PART_ID);
+    String partField = "0";
     // If it has segment file then part field can be appended directly to table path
     if (!isStandardTable) {
+      partField = getRequiredFieldFromTID(tid,TupleIdEnum.PARTITION_PART_ID);
       return tablePath + CarbonCommonConstants.FILE_SEPARATOR + partField.replace("#", "/");
     }
     String part = CarbonTablePath.addPartPrefix(partField);
@@ -943,7 +944,8 @@ public class CarbonUpdateUtil {
       boolean isPartitionTable) {
     String blockNameWithOutPart = blockName
         .substring(blockName.indexOf(CarbonCommonConstants.HYPHEN) + 1,
-            blockName.lastIndexOf(CarbonTablePath.getCarbonDataExtension()));
+            blockName.lastIndexOf(CarbonTablePath.getCarbonDataExtension()))
+        .replace(CarbonTablePath.BATCH_PREFIX, "-");
     // to remove compressor name
     int index = blockNameWithOutPart.lastIndexOf(CarbonCommonConstants.POINT);
     if (isPartitionTable) {

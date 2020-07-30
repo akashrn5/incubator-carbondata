@@ -271,15 +271,15 @@ class DeleteCarbonTableTestCase extends QueryTest with BeforeAndAfterAll {
     val dataframe = sql("select getTupleId() as tupleId from iud_db.dest_tuple")
     val listOfTupleId = dataframe.collect().map(df => df.get(0).toString).sorted
     assert(
-      listOfTupleId(0).contains("0/0/0-0_batchno0-0-0-") && listOfTupleId(0).endsWith("/0/0/0"))
+      listOfTupleId(0).contains("0/0-0_batchno0-0-0-") && listOfTupleId(0).endsWith("/0/0/0"))
     assert(
-      listOfTupleId(1).contains("0/0/0-0_batchno0-0-0-") && listOfTupleId(1).endsWith("/0/0/1"))
+      listOfTupleId(1).contains("0/0-0_batchno0-0-0-") && listOfTupleId(1).endsWith("/0/0/1"))
     assert(
-      listOfTupleId(2).contains("0/0/0-0_batchno0-0-0-") && listOfTupleId(2).endsWith("/0/0/2"))
+      listOfTupleId(2).contains("0/0-0_batchno0-0-0-") && listOfTupleId(2).endsWith("/0/0/2"))
     assert(
-      listOfTupleId(3).contains("0/0/0-0_batchno0-0-0-") && listOfTupleId(3).endsWith("/0/0/3"))
+      listOfTupleId(3).contains("0/0-0_batchno0-0-0-") && listOfTupleId(3).endsWith("/0/0/3"))
     assert(
-      listOfTupleId(4).contains("0/0/0-0_batchno0-0-0-") && listOfTupleId(4).endsWith("/0/0/4"))
+      listOfTupleId(4).contains("0/0-0_batchno0-0-0-") && listOfTupleId(4).endsWith("/0/0/4"))
 
     val carbonTable_part = CarbonEnv.getInstance(SparkTestQueryExecutor.spark).carbonMetaStore
       .lookupRelation(Option("iud_db"), "dest_tuple_part")(SparkTestQueryExecutor.spark)
