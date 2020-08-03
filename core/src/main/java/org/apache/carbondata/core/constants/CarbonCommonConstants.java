@@ -369,7 +369,7 @@ public final class CarbonCommonConstants {
   public static final String CARBON_MERGE_INDEX_IN_SEGMENT =
       "carbon.merge.index.in.segment";
 
-  public static final String CARBON_MERGE_INDEX_IN_SEGMENT_DEFAULT = "true";
+  public static final String CARBON_MERGE_INDEX_IN_SEGMENT_DEFAULT = "false";
 
   /**
    * It is the user defined property to specify whether to throw exception or not in case

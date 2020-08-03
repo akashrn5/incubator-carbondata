@@ -22,7 +22,7 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.{ArrayList, Date, UUID}
+import java.util.{ArrayList, Date, List, UUID}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -44,7 +44,9 @@ import org.apache.carbondata.core.fileoperations.{AtomicFileOperationFactory, At
 import org.apache.carbondata.core.metadata.converter.{SchemaConverter, ThriftWrapperSchemaConverterImpl}
 import org.apache.carbondata.core.metadata.datatype.{DataTypes, StructField}
 import org.apache.carbondata.core.metadata.encoder.Encoding
-import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension
+import org.apache.carbondata.core.metadata.schema.PartitionInfo
+import org.apache.carbondata.core.metadata.schema.partition.PartitionType
+import org.apache.carbondata.core.metadata.schema.table.column.{CarbonDimension, ColumnSchema}
 import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, CarbonTableBuilder, TableSchemaBuilder}
 import org.apache.carbondata.core.metadata.{AbsoluteTableIdentifier, CarbonMetadata, CarbonTableIdentifier}
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentStatus}
@@ -76,7 +78,8 @@ object CarbonDataStoreCreator {
         new CarbonTableIdentifier(dbName,
           tableName,
           UUID.randomUUID().toString))
-      val table: CarbonTable = createTable(absoluteTableIdentifier, useLocalDict)
+      val schemaBuilder = getSchemaBuilder()
+      val table: CarbonTable = createTable(absoluteTableIdentifier, useLocalDict, schemaBuilder, null)
       val schema: CarbonDataLoadSchema = new CarbonDataLoadSchema(table)
       val loadModel: CarbonLoadModel = new CarbonLoadModel()
       import scala.collection.JavaConverters._
@@ -136,9 +139,7 @@ object CarbonDataStoreCreator {
     }
   }
 
-  def createTable(absoluteTableIdentifier: AbsoluteTableIdentifier,
-      useLocalDict: Boolean): CarbonTable = {
-
+  def getSchemaBuilder(): TableSchemaBuilder = {
     val integer = new AtomicInteger(0)
     val schemaBuilder = new TableSchemaBuilder
     schemaBuilder.addColumn(new StructField("ID", DataTypes.INT), integer, false, false)
@@ -153,9 +154,16 @@ object CarbonDataStoreCreator {
     schemaBuilder.addColumn(new StructField("dob", DataTypes.TIMESTAMP), integer, false, true)
     schemaBuilder.addColumn(new StructField("shortField", DataTypes.SHORT), integer, false, false)
     schemaBuilder.addColumn(new StructField("isCurrentEmployee", DataTypes.BOOLEAN), integer, false, true)
+    schemaBuilder
+  }
+
+  def createTable(absoluteTableIdentifier: AbsoluteTableIdentifier,
+      useLocalDict: Boolean,
+      schemaBuilder: TableSchemaBuilder,
+      partitionInfo: PartitionInfo): CarbonTable = {
     schemaBuilder.tableName(absoluteTableIdentifier.getTableName)
     val schema = schemaBuilder.build()
-
+    schema.setPartitionInfo(partitionInfo)
     val builder = new CarbonTableBuilder
     builder.databaseName(absoluteTableIdentifier.getDatabaseName)
       .tableName(absoluteTableIdentifier.getTableName)

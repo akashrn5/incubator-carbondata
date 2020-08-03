@@ -41,6 +41,7 @@ import io.prestosql.spi.type.TypeManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.hive.ql.io.IOConstants;
@@ -83,8 +84,15 @@ public class CarbonDataFileWriter implements HiveFileWriter {
   public CarbonDataFileWriter(Path outPutPath, List<String> inputColumnNames, Properties properties,
       JobConf configuration, TypeManager typeManager) throws SerDeException {
     this.outPutPath = requireNonNull(outPutPath, "path is null");
-    this.outPutPath = new Path(properties.getProperty("location"));
-    outPutPath = new Path(properties.getProperty("location"));
+    if (properties.getProperty(hive_metastoreConstants.META_TABLE_PARTITION_COLUMNS) != null) {
+      this.outPutPath = new Path(properties.getProperty("location"));
+      outPutPath = outPutPath.getParent();
+    } else {
+      if (null != properties.getProperty("location")) {
+        this.outPutPath = new Path(properties.getProperty("location"));
+        outPutPath = new Path(properties.getProperty("location"));
+      }
+    }
     this.configuration = requireNonNull(configuration, "conf is null");
     List<String> columnNames = Arrays
         .asList(properties.getProperty(IOConstants.COLUMNS, "").split(CarbonCommonConstants.COMMA));
